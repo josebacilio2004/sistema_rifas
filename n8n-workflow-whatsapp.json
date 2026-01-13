@@ -1,0 +1,178 @@
+{
+    "name": "Sistema de Rifas - WhatsApp Notifications",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "rifa",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "rifa-webhook"
+        },
+        {
+            "parameters": {
+                "functionCode": "const event = items[0].json.event;\nconst raffleId = items[0].json.raffle_id;\nconst userId = items[0].json.user_id;\nconst userName = items[0].json.user_name || 'Usuario';\nconst userPhone = items[0].json.user_phone || '';\nconst amount = items[0].json.amount || 5.00;\nconst timestamp = items[0].json.timestamp;\n\nlet message = '';\nlet shouldSendWhatsApp = false;\n\nswitch(event) {\n  case 'raffle_purchased':\n    shouldSendWhatsApp = true;\n    message = `🎉 *¡Felicitaciones!*\\n\\n` +\n              `Has comprado la rifa N° *${raffleId}*\\n\\n` +\n              `📝 *Detalles:*\\n` +\n              `- Nombre: ${userName}\\n` +\n              `- Monto: S/ ${amount.toFixed(2)}\\n` +\n              `- Fecha: ${new Date(timestamp).toLocaleString('es-PE')}\\n\\n` +\n              `¡Mucha suerte! 🍀`;\n    break;\n  case 'raffle_reserved':\n    message = `⏱️ Rifa N° ${raffleId} reservada por 5 minutos`;\n    break;\n  case 'reservation_expired':\n    message = `⏰ Rifa N° ${raffleId} liberada (reserva expirada)`;\n    break;\n  case 'reservation_cancelled':\n    message = `❌ Rifa N° ${raffleId} - Reserva cancelada`;\n    break;\n  default:\n    message = `ℹ️ Evento: ${event} - Rifa N° ${raffleId}`;\n}\n\nreturn {\n  json: {\n    event: event,\n    raffle_id: raffleId,\n    user_id: userId,\n    user_name: userName,\n    user_phone: userPhone,\n    amount: amount,\n    timestamp: timestamp,\n    message: message,\n    should_send_whatsapp: shouldSendWhatsApp\n  }\n};"
+            },
+            "id": "process-data",
+            "name": "Process Event Data",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{$json.should_send_whatsapp}}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "check-whatsapp",
+            "name": "Should Send WhatsApp?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "={{`http://evolution-api:8081/message/sendText/${$credentials.evolutionInstanceName}`}}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "number",
+                            "value": "={{$json.user_phone}}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{$json.message}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "send-whatsapp",
+            "name": "Send WhatsApp (Evolution API)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                850,
+                200
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "1",
+                    "name": "Evolution API Credentials"
+                }
+            },
+            "notes": "Configure Evolution API credentials with API Key"
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"success\": true, \"event\": $json.event, \"raffle_id\": $json.raffle_id, \"whatsapp_sent\": $json.should_send_whatsapp } }}"
+            },
+            "id": "webhook-response",
+            "name": "Webhook Response",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"success\": true, \"event\": $json.event, \"raffle_id\": $json.raffle_id, \"whatsapp_sent\": false } }}"
+            },
+            "id": "webhook-response-skip",
+            "name": "Webhook Response (Skip)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                850,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Process Event Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process Event Data": {
+            "main": [
+                [
+                    {
+                        "node": "Should Send WhatsApp?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Should Send WhatsApp?": {
+            "main": [
+                [
+                    {
+                        "node": "Send WhatsApp (Evolution API)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Webhook Response (Skip)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send WhatsApp (Evolution API)": {
+            "main": [
+                [
+                    {
+                        "node": "Webhook Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {},
+    "staticData": null,
+    "tags": [],
+    "pinData": {},
+    "createdAt": "2026-01-12T19:15:00.000Z",
+    "updatedAt": "2026-01-12T19:15:00.000Z"
+}

@@ -1,0 +1,172 @@
+{
+    "name": "Sistema de Rifas - Webhook Integration",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "rifa",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "rifa-webhook"
+        },
+        {
+            "parameters": {
+                "functionCode": "// Extract event data from webhook\nconst event = items[0].json.event;\nconst raffleId = items[0].json.raffle_id;\nconst userId = items[0].json.user_id;\nconst timestamp = items[0].json.timestamp;\nconst userName = items[0].json.user_name || 'N/A';\nconst amount = items[0].json.amount || 0;\n\n// Format message based on event type\nlet message = '';\nlet emoji = '';\n\nswitch(event) {\n  case 'raffle_reserved':\n    emoji = '⏱️';\n    message = `Rifa N° ${raffleId} reservada por usuario ${userId}`;\n    break;\n  case 'raffle_purchased':\n    emoji = '✅';\n    message = `¡Rifa N° ${raffleId} VENDIDA! Comprador: ${userName} - Monto: S/ ${amount}`;\n    break;\n  case 'reservation_expired':\n    emoji = '⏰';\n    message = `Rifa N° ${raffleId} liberada (reserva expirada)`;\n    break;\n  case 'reservation_cancelled':\n    emoji = '❌';\n    message = `Rifa N° ${raffleId} - Reserva cancelada por usuario`;\n    break;\n  default:\n    emoji = 'ℹ️';\n    message = `Evento: ${event} - Rifa N° ${raffleId}`;\n}\n\nreturn {\n  json: {\n    event: event,\n    raffle_id: raffleId,\n    user_id: userId,\n    user_name: userName,\n    amount: amount,\n    timestamp: timestamp,\n    message: `${emoji} ${message}`,\n    formatted_time: new Date(timestamp).toLocaleString('es-PE')\n  }\n};"
+            },
+            "id": "process-data",
+            "name": "Process Event Data",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.event}}",
+                            "operation": "equals",
+                            "value2": "raffle_purchased"
+                        }
+                    ]
+                }
+            },
+            "id": "check-purchase",
+            "name": "Is Purchase?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "text": "={{$json.message}}\\n\\nDetalles:\\n- Usuario: {{$json.user_name}}\\n- DNI/ID: {{$json.user_id}}\\n- Monto: S/ {{$json.amount}}\\n- Fecha: {{$json.formatted_time}}",
+                "additionalFields": {}
+            },
+            "id": "log-purchase",
+            "name": "Log Purchase",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 1,
+            "position": [
+                850,
+                200
+            ],
+            "disabled": true,
+            "notes": "Replace with your notification service (Discord, Telegram, Email, etc.)"
+        },
+        {
+            "parameters": {
+                "text": "={{$json.message}}\\n\\nFecha: {{$json.formatted_time}}",
+                "additionalFields": {}
+            },
+            "id": "log-other",
+            "name": "Log Other Events",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 1,
+            "position": [
+                850,
+                400
+            ],
+            "disabled": true,
+            "notes": "Optional: Log non-purchase events"
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"success\": true, \"received_event\": $json.event, \"raffle_id\": $json.raffle_id, \"timestamp\": $json.timestamp } }}"
+            },
+            "id": "webhook-response",
+            "name": "Webhook Response",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Process Event Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process Event Data": {
+            "main": [
+                [
+                    {
+                        "node": "Is Purchase?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is Purchase?": {
+            "main": [
+                [
+                    {
+                        "node": "Log Purchase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Log Other Events",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Log Purchase": {
+            "main": [
+                [
+                    {
+                        "node": "Webhook Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Log Other Events": {
+            "main": [
+                [
+                    {
+                        "node": "Webhook Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {},
+    "staticData": null,
+    "tags": [],
+    "pinData": {},
+    "createdAt": "2026-01-12T14:56:00.000Z",
+    "updatedAt": "2026-01-12T14:56:00.000Z"
+}

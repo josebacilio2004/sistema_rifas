@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: rifa-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: rifauser
+      POSTGRES_PASSWORD: rifapass123
+      POSTGRES_DB: rifa_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - rifa-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U rifauser -d rifa_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend Node.js API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rifa-backend
+    restart: always
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://rifauser:rifapass123@postgres:5432/rifa_db
+      FRONTEND_URL: http://localhost:8080
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/webhook/rifa}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - rifa-network
+    command: npm run dev
+
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: rifa-n8n
+    restart: always
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=rifaadmin123
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://n8n:5678/
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - rifa-network
+
+volumes:
+  postgres_data:
+  n8n_data:
+
+
+networks:
+  rifa-network:
+    driver: bridge
