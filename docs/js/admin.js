@@ -1,4 +1,4 @@
-// Panel de Administración - JavaScript
+﻿// Panel de AdministraciÃ³n - JavaScript
 
 const state = {
     token: null,
@@ -76,7 +76,7 @@ async function handleLogin(e) {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || 'Error al iniciar sesión');
+            throw new Error(data.error || 'Error al iniciar sesiÃ³n');
         }
 
         // Guardar token y datos del admin
@@ -128,7 +128,7 @@ async function loadStats() {
     });
 
     if (!response.ok) {
-        throw new Error('Error al cargar estadísticas');
+        throw new Error('Error al cargar estadÃ­sticas');
     }
 
     const stats = await response.json();
@@ -161,7 +161,7 @@ async function loadUsers() {
         return;
     }
     
-   users TableBody.innerHTML = users.map(user => `
+   usersTableBody.innerHTML = users.map(user => `
         <tr>
             <td>${user.nombre} ${user.apellido}</td>
             <td>${user.dni}</td>
@@ -322,7 +322,7 @@ async function editCarouselItem(id) {
 }
 
 async function deleteCarouselItem(id) {
-    if (!confirm('�Est�s seguro de eliminar este premio?')) return;
+    if (!confirm('¿Estás seguro de eliminar este premio?')) return;
     
     try {
         const response = await fetch(\/carousel/\, {
@@ -346,3 +346,4 @@ async function deleteCarouselItem(id) {
 // Make functions global
 window.editCarouselItem = editCarouselItem;
 window.deleteCarouselItem = deleteCarouselItem;
+
