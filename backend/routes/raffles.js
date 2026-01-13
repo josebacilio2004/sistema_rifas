@@ -97,13 +97,15 @@ router.post('/:id/reserve', async (req, res, next) => {
             }
 
             // Reserve the raffle
+            const reservationTimeout = timerService.RESERVATION_TIMEOUT_MINUTES;
             const updateResult = await client.query(
                 `UPDATE raffles 
                  SET status = 'reserved', 
                      reserved_by = $1, 
-                     reserved_at = NOW() 
+                     reserved_at = NOW(),
+                     reserved_until = NOW() + INTERVAL '${reservationTimeout} minutes'
                  WHERE id = $2 
-                 RETURNING id, status, reserved_at`,
+                 RETURNING id, status, reserved_at, reserved_until`,
                 [user_id, raffleValidation.id]
             );
 
