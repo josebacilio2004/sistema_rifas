@@ -16,17 +16,69 @@ const participateBtn = document.getElementById('participate-btn');
 const availableCountEl = document.getElementById('available-count');
 
 // Inicializar
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadPremiosFromAPI();
     createCarouselSlides();
     createCarouselDots();
     setupEventListeners();
     loadAvailableCount();
 
     // Auto-play carousel
-    setInterval(nextSlide, 5000);
+    if (totalSlides > 0) {
+        setInterval(nextSlide, 5000);
+    }
 });
 
+async function loadPremiosFromAPI() {
+    try {
+        const response = await fetch(`${window.CONFIG?.API_URL || 'http://localhost:3000/api'}/carousel`);
+        if (response.ok) {
+            const items = await response.json();
+            if (items.length > 0) {
+                premios = items.map(item => ({
+                    imagen: item.imagen_url,
+                    titulo: item.titulo,
+                    descripcion: item.descripcion || ''
+                }));
+                totalSlides = premios.length;
+            } else {
+                useFallbackPremios();
+            }
+        } else {
+            useFallbackPremios();
+        }
+    } catch (error) {
+        console.error('Error loading carousel from API:', error);
+        useFallbackPremios();
+    }
+}
+
+function useFallbackPremios() {
+    premios = [
+        {
+            imagen: 'https://via.placeholder.com/450x450/667eea/ffffff?text=iPhone+16+Pro+Max',
+            titulo: '📱 iPhone 16 Pro Max 256GB',
+            descripcion: 'El último modelo de Apple con todas las funciones premium'
+        },
+        {
+            imagen: 'https://via.placeholder.com/450x450/764ba2/ffffff?text=Laptop+Gaming',
+            titulo: '💻 Laptop Gaming MSI',
+            descripcion: 'Laptop de alto rendimiento para gaming y trabajo profesional'
+        },
+        {
+            imagen: 'https://via.placeholder.com/450x450/667eea/ffffff?text=PlayStation+5',
+            titulo: '🎮 PlayStation 5 + 2 Juegos',
+            descripcion: 'Consola PS5 edición estándar con 2 juegos AAA'
+        }
+    ];
+    totalSlides = premios.length;
+}
+
 function createCarouselSlides() {
+    if (premios.length === 0) {
+        carouselTrack.innerHTML = '<div class="carousel-slide"><p>Cargando premios...</p></div>';
+        return;
+    }
     carouselTrack.innerHTML = premios.map(premio => `
         <div class="carousel-slide">
             <img src="${premio.imagen}" alt="${premio.titulo}" loading="lazy">
@@ -37,6 +89,8 @@ function createCarouselSlides() {
 }
 
 function createCarouselDots() {
+    if (premios.length === 0) return;
+
     carouselDots.innerHTML = premios.map((_, index) => `
         <span class="dot ${index === 0 ? 'active' : ''}" data-slide="${index}"></span>
     `).join('');
@@ -51,9 +105,9 @@ function createCarouselDots() {
 }
 
 function setupEventListeners() {
-    prevBtn.addEventListener('click', prevSlide);
-    nextBtn.addEventListener('click', nextSlide);
-    participateBtn.addEventListener('click', goToRaffles);
+    if (prevBtn) prevBtn.addEventListener('click', prevSlide);
+    if (nextBtn) nextBtn.addEventListener('click', nextSlide);
+    if (participateBtn) participateBtn.addEventListener('click', goToRaffles);
 }
 
 function goToSlide(slideIndex) {
@@ -62,11 +116,13 @@ function goToSlide(slideIndex) {
 }
 
 function nextSlide() {
+    if (totalSlides === 0) return;
     currentSlide = (currentSlide + 1) % totalSlides;
     updateCarousel();
 }
 
 function prevSlide() {
+    if (totalSlides === 0) return;
     currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
     updateCarousel();
 }
@@ -82,7 +138,6 @@ function updateCarousel() {
 }
 
 function goToRaffles() {
-    // Redireccionar a la página principal de rifas
     window.location.href = 'index.html';
 }
 
@@ -97,8 +152,7 @@ async function loadAvailableCount() {
             }
         }
     } catch (error) {
-        console.error('Error loading available count:', error);
-        // Mantener el valor por defecto de 100
+        console.error('Error loading available count:', error');
     }
 }
 
