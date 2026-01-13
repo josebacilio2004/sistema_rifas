@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Rifas - Participa y gana">
+    <title>Comprar Rifas - Sistema de Rifas</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/cart.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar-rifas">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html" style="text-decoration: none; color: #667eea;">
+                    <h2>🎉 Gran Sorteo 2026</h2>
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">← Volver al Inicio</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Background Elements -->
+    <div class="bg-gradient"></div>
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Registration Section -->
+        <section id="registration-section" class="section">
+            <div class="card card-large">
+                <div class="card-header">
+                    <h1 class="title">🎉 Sistema de Rifas</h1>
+                    <p class="subtitle">Registra tus datos para participar</p>
+                </div>
+
+                <form id="registration-form" class="form">
+                    <div class="form-group">
+                        <label for="nombre" class="form-label">Nombre</label>
+                        <input type="text" id="nombre" name="nombre" class="form-input" placeholder="Ingresa tu nombre"
+                            required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="apellido" class="form-label">Apellido</label>
+                        <input type="text" id="apellido" name="apellido" class="form-input"
+                            placeholder="Ingresa tu apellido" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dni" class="form-label">DNI</label>
+                        <input type="text" id="dni" name="dni" class="form-input" placeholder="8 dígitos" maxlength="8"
+                            pattern="[0-9]{8}" required>
+                        <small class="form-hint">Debe tener exactamente 8 dígitos</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="celular" class="form-label">Celular</label>
+                        <input type="tel" id="celular" name="celular" class="form-input" placeholder="+51987654321"
+                            pattern="\+51[0-9]{9}" required>
+                        <small class="form-hint">Formato: +51 seguido de 9 dígitos</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large">
+                        <span>Continuar</span>
+                        <svg class="btn-icon" width="20" height="20" viewBox="0 0 20 20" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Raffles Section -->
+        <section id="raffles-section" class="section hidden">
+            <div class="raffles-header">
+                <div>
+                    <h2 class="title">Selecciona tu Número</h2>
+                    <p class="subtitle">Cada rifa cuesta <strong>S/ 5.00</strong></p>
+                </div>
+                <button id="logout-btn" class="btn btn-secondary btn-small">
+                    Cambiar Usuario
+                </button>
+            </div>
+
+            <div class="user-info" id="user-info">
+                <!-- User info will be inserted here -->
+            </div>
+
+            <div class="raffles-legend">
+                <div class="legend-item">
+                    <span class="legend-color available"></span>
+                    <span>Disponible</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color reserved"></span>
+                    <span>Reservado</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color sold"></span>
+                    <span>Vendido</span>
+                </div>
+            </div>
+
+            <div id="raffles-grid" class="raffles-grid">
+                <!-- Raffle numbers will be inserted here -->
+            </div>
+
+            <div class="raffles-footer">
+                <button id="refresh-btn" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M17.5 10C17.5 14.1421 14.1421 17.5 10 17.5C5.85786 17.5 2.5 14.1421 2.5 10C2.5 5.85786 5.85786 2.5 10 2.5C12.5 2.5 14.6 3.7 16 5.5M16 2.5V5.5H13"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span>Actualizar</span>
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Floating Shopping Cart -->
+    <div id="shopping-cart" class="shopping-cart hidden">
+        <button id="cart-toggle" class="cart-toggle">
+            🛒 <span id="cart-count" class="cart-badge">0</span>
+        </button>
+        <div id="cart-panel" class="cart-panel hidden">
+            <div class="cart-header">
+                <h3>Rifas Seleccionadas</h3>
+                <button id="cart-close" class="cart-close-btn">✕</button>
+            </div>
+            <div id="cart-items" class="cart-items">
+                <!-- Cart items will be inserted here -->
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total:</span>
+                    <strong>S/ <span id="cart-total">0.00</span></strong>
+                </div>
+                <button id="cart-checkout" class="btn btn-primary btn-large" disabled>
+                    <span>Comprar Rifas</span>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16.5 5.5L7.5 14.5L3.5 10.5" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="close-modal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </button>
+
+            <div class="modal-header">
+                <h3 class="modal-title">Pago con Yape</h3>
+                <p class="modal-subtitle">Rifa N° <span id="modal-raffle-number"></span></p>
+            </div>
+
+            <div class="modal-body">
+                <div class="payment-timer">
+                    <svg class="timer-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                        <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                    <span>Tiempo restante: <strong id="timer-display">5:00</strong></span>
+                </div>
+
+                <div class="payment-amount">
+                    <span class="amount-label">Monto a pagar:</span>
+                    <span class="amount-value">S/ 5.00</span>
+                </div>
+
+                <div class="qr-container">
+                    <div class="qr-code" id="qr-code">
+                        <!-- QR code will be inserted here -->
+                    </div>
+                    <p class="qr-instructions">
+                        Escanea este código QR con tu app de Yape para completar el pago
+                    </p>
+                </div>
+
+                <div class="payment-actions">
+                    <button id="confirm-payment-btn" class="btn btn-primary btn-large">
+                        <span>He completado el pago</span>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16.5 5.5L7.5 14.5L3.5 10.5" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                    <button id="cancel-payment-btn" class="btn btn-secondary">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Cargando...</p>
+    </div>
+
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/confetti.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/raffles.js"></script>
+    <script src="js/payment.js"></script>
+</body>
+
+</html>

@@ -1,6 +1,6 @@
 // Landing Page - JavaScript
 
-// Premios del carrusel - Se cargarán desde la API
+// Premios del carrusel - Se cargarán desde la API o usarán imágenes locales
 let premios = [];
 
 // Variables del carrusel
@@ -12,8 +12,31 @@ const carouselTrack = document.getElementById('carousel-track');
 const carouselDots = document.getElementById('carousel-dots');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
-const participateBtn = document.getElementById('participate-btn');
 const availableCountEl = document.getElementById('available-count');
+
+// Premios locales como fallback
+const premiosLocales = [
+    {
+        imagen: 'assets/img/Apple-iPhone-16-Pro.jpg',
+        titulo: '📱 iPhone 16 Pro Max 256GB',
+        descripcion: 'El último modelo de Apple con todas las funciones premium'
+    },
+    {
+        imagen: 'assets/img/laptop.jpg',
+        titulo: '💻 Laptop Gaming MSI',
+        descripcion: 'Laptop de alto rendimiento para gaming y trabajo profesional'
+    },
+    {
+        imagen: 'assets/img/ps5.jpg',
+        titulo: '🎮 PlayStation 5 + 2 Juegos',
+        descripcion: 'Consola PS5 edición estándar con 2 juegos AAA'
+    },
+    {
+        imagen: 'assets/img/smartv.jpg',
+        titulo: '📺 Smart TV Samsung 55"',
+        descripcion: 'Televisor 4K UHD con tecnología QLED'
+    }
+];
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', async () => {
@@ -41,37 +64,18 @@ async function loadPremiosFromAPI() {
                     descripcion: item.descripcion || ''
                 }));
                 totalSlides = premios.length;
-            } else {
-                useFallbackPremios();
+                console.log('✅ Premios cargados desde API');
+                return;
             }
-        } else {
-            useFallbackPremios();
         }
     } catch (error) {
-        console.error('Error loading carousel from API:', error);
-        useFallbackPremios();
+        console.log('⚠️ Error cargando desde API, usando premios locales:', error.message);
     }
-}
 
-function useFallbackPremios() {
-    premios = [
-        {
-            imagen: 'https://via.placeholder.com/450x450/667eea/ffffff?text=iPhone+16+Pro+Max',
-            titulo: '📱 iPhone 16 Pro Max 256GB',
-            descripcion: 'El último modelo de Apple con todas las funciones premium'
-        },
-        {
-            imagen: 'https://via.placeholder.com/450x450/764ba2/ffffff?text=Laptop+Gaming',
-            titulo: '💻 Laptop Gaming MSI',
-            descripcion: 'Laptop de alto rendimiento para gaming y trabajo profesional'
-        },
-        {
-            imagen: 'https://via.placeholder.com/450x450/667eea/ffffff?text=PlayStation+5',
-            titulo: '🎮 PlayStation 5 + 2 Juegos',
-            descripcion: 'Consola PS5 edición estándar con 2 juegos AAA'
-        }
-    ];
+    // Usar premios locales
+    premios = premiosLocales;
     totalSlides = premios.length;
+    console.log('✅ Usando premios locales');
 }
 
 function createCarouselSlides() {
@@ -81,7 +85,8 @@ function createCarouselSlides() {
     }
     carouselTrack.innerHTML = premios.map(premio => `
         <div class="carousel-slide">
-            <img src="${premio.imagen}" alt="${premio.titulo}" loading="lazy">
+            <img src="${premio.imagen}" alt="${premio.titulo}" loading="lazy" 
+                 onerror="this.src='https://via.placeholder.com/450x450/667eea/ffffff?text=Premio'">
             <h3>${premio.titulo}</h3>
             <p>${premio.descripcion}</p>
         </div>
@@ -107,7 +112,6 @@ function createCarouselDots() {
 function setupEventListeners() {
     if (prevBtn) prevBtn.addEventListener('click', prevSlide);
     if (nextBtn) nextBtn.addEventListener('click', nextSlide);
-    if (participateBtn) participateBtn.addEventListener('click', goToRaffles);
 }
 
 function goToSlide(slideIndex) {
@@ -137,10 +141,6 @@ function updateCarousel() {
     });
 }
 
-function goToRaffles() {
-    window.location.href = 'index.html';
-}
-
 async function loadAvailableCount() {
     try {
         const response = await fetch(`${window.CONFIG?.API_URL || 'http://localhost:3000/api'}/raffles`);
@@ -152,9 +152,23 @@ async function loadAvailableCount() {
             }
         }
     } catch (error) {
-        console.error('Error loading available count:', error');
+        console.log('Error loading available count:', error);
     }
 }
+
+// Smooth scroll para enlaces internos
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
 
 // Animación de entrada para elementos
 const observerOptions = {
