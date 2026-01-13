@@ -180,3 +180,169 @@ async function loadUsers() {
         </tr>
     `).join('');
 }
+
+// === CAROUSEL MANAGEMENT ===
+
+const carouselItemsGrid = document.getElementById('carousel-items');
+const carouselModal = document.getElementById('carousel-modal');
+const carouselForm = document.getElementById('carousel-form');
+const addCarouselBtn = document.getElementById('add-carousel-btn');
+const closeModalBtn = document.getElementById('close-modal-btn');
+
+// Setup event listeners for carousel
+if (addCarouselBtn) {
+    addCarouselBtn.addEventListener('click', () => openCarouselModal());
+}
+
+if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', closeCarouselModal);
+}
+
+if (carouselForm) {
+    carouselForm.addEventListener('submit', handleCarouselSubmit);
+}
+
+async function loadCarouselItems() {
+    try {
+        const response = await fetch(\/carousel/all, {
+            headers: {
+                'Authorization': Bearer \
+            }
+        });
+        
+        if (!response.ok) throw new Error('Error al cargar items del carrusel');
+        
+        const items = await response.json();
+        
+        if (items.length === 0) {
+            carouselItemsGrid.innerHTML = '<p class=\"loading\">No hay premios en el carrusel</p>';
+            return;
+        }
+        
+        carouselItemsGrid.innerHTML = items.map(item => 
+            <div class=\"carousel-item-card\">
+                <img src=\"\\" alt=\"\\" onerror=\"this.src='https://via.placeholder.com/300x200/667eea/ffffff?text=Error+Cargando+Imagen'\">
+                <h3>\</h3>
+                <p>\</p>
+                <div class=\"carousel-item-actions\">
+                    <button class=\"btn-edit\" onclick=\"editCarouselItem(\)\"> Editar</button>
+                    <button class=\"btn-delete\" onclick=\"deleteCarouselItem(\)\"> Eliminar</button>
+                </div>
+            </div>
+        ).join('');
+        
+    } catch (error) {
+        console.error('Error loading carousel items:', error);
+        carouselItemsGrid.innerHTML = '<p class=\"loading\">Error al cargar items</p>';
+    }
+}
+
+function openCarouselModal(item = null) {
+    const modalTitle = document.getElementById('modal-title');
+    const itemIdInput = document.getElementById('carousel-item-id');
+    const tituloInput = document.getElementById('carousel-titulo');
+    const descripcionInput = document.getElementById('carousel-descripcion');
+    const imagenInput = document.getElementById('carousel-imagen');
+    const ordenInput = document.getElementById('carousel-orden');
+    
+    if (item) {
+        modalTitle.textContent = 'Editar Premio del Carrusel';
+        itemIdInput.value = item.id;
+        tituloInput.value = item.titulo;
+        descripcionInput.value = item.descripcion || '';
+        imagenInput.value = item.imagen_url;
+        ordenInput.value = item.orden;
+    } else {
+        modalTitle.textContent = 'Agregar Premio alCarrusel';
+        carouselForm.reset();
+        itemIdInput.value = '';
+    }
+    
+    carouselModal.classList.remove('hidden');
+}
+
+function closeCarouselModal() {
+    carouselModal.classList.add('hidden');
+    carouselForm.reset();
+}
+
+async function handleCarouselSubmit(e) {
+    e.preventDefault();
+    
+    const itemId = document.getElementById('carousel-item-id').value;
+    const data = {
+        titulo: document.getElementById('carousel-titulo').value,
+        descripcion: document.getElementById('carousel-descripcion').value,
+        imagen_url: document.getElementById('carousel-imagen').value,
+        orden: parseInt(document.getElementById('carousel-orden').value)
+    };
+    
+    try {
+        const url = itemId 
+            ? \/carousel/\
+            : \/carousel;
+        const method = itemId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': Bearer \
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) throw new Error('Error al guardar item');
+        
+        closeCarouselModal();
+        await loadCarouselItems();
+        alert(itemId ? 'Premio actualizado' : 'Premio agregado');
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al guardar: ' + error.message);
+    }
+}
+
+async function editCarouselItem(id) {
+    try {
+        const response = await fetch(\/carousel/all, {
+            headers: {
+                'Authorization': Bearer \
+            }
+        });
+        const items = await response.json();
+        const item = items.find(i => i.id === id);
+        if (item) {
+            openCarouselModal(item);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+async function deleteCarouselItem(id) {
+    if (!confirm('¿Estás seguro de eliminar este premio?')) return;
+    
+    try {
+        const response = await fetch(\/carousel/\, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': Bearer \
+            }
+        });
+        
+        if (!response.ok) throw new Error('Error al eliminar');
+        
+        await loadCarouselItems();
+        alert('Premio eliminado');
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al eliminar: ' + error.message);
+    }
+}
+
+// Make functions global
+window.editCarouselItem = editCarouselItem;
+window.deleteCarouselItem = deleteCarouselItem;

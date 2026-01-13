@@ -1,32 +1,11 @@
 // Landing Page - JavaScript
 
-// Premios del carrusel (imágenes placeholder)
-const premios = [
-    {
-        imagen: 'https://via.placeholder.com/450x450/667eea/ffffff?text=iPhone+16+Pro+Max',
-        titulo: '📱 iPhone 16 Pro Max 256GB',
-        descripcion: 'El último modelo de Apple con todas las funciones premium'
-    },
-    {
-        imagen: 'https://via.placeholder.com/450x450/764ba2/ffffff?text=Laptop+Gaming',
-        titulo: '💻 Laptop Gaming MSI',
-        descripcion: 'Laptop de alto rendimiento para gaming y trabajo profesional'
-    },
-    {
-        imagen: 'https://via.placeholder.com/450x450/667eea/ffffff?text=PlayStation+5',
-        titulo: '🎮 PlayStation 5 + 2 Juegos',
-        descripcion: 'Consola PS5 edición estándar con 2 juegos AAA'
-    },
-    {
-        imagen: 'https://via.placeholder.com/450x450/764ba2/ffffff?text=Smart+TV+55',
-        titulo: '📺 Smart TV Samsung 55"',
-        descripcion: 'Televisor 4K UHD con tecnología QLED'
-    }
-];
+// Premios del carrusel - Se cargarán desde la API
+let premios = [];
 
 // Variables del carrusel
 let currentSlide = 0;
-const totalSlides = premios.length;
+let totalSlides = 0;
 
 // Elementos DOM
 const carouselTrack = document.getElementById('carousel-track');

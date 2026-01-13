@@ -11,6 +11,7 @@ const raffleRoutes = require('./routes/raffles');
 const webhookRoutes = require('./routes/webhooks');
 const adminRoutes = require('./routes/admin');
 const paymentRoutes = require('./routes/payments');
+const carouselRoutes = require('./routes/carousel');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -78,6 +79,7 @@ app.use('/api/raffles', raffleRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/carousel', carouselRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

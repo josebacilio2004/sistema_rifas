@@ -103,7 +103,49 @@
                     </table>
                 </div>
             </section>
+
+            <!-- Carousel Management Section -->
+            <section class="carousel-section">
+                <div class="section-header">
+                    <h2>🎪 Gestión del Carrusel</h2>
+                    <button id="add-carousel-btn" class="btn-primary">+ Agregar Premio</button>
+                </div>
+                <div id="carousel-items" class="carousel-items-grid">
+                    <p class="loading">Cargando...</p>
+                </div>
+            </section>
         </main>
+    </div>
+
+    <!-- Modal for Carousel Item -->
+    <div id="carousel-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modal-title">Agregar Premio al Carrusel</h2>
+            <form id="carousel-form">
+                <input type="hidden" id="carousel-item-id">
+                <div class="form-group">
+                    <label for="carousel-titulo">Título *</label>
+                    <input type="text" id="carousel-titulo" placeholder="📱 iPhone 16 Pro Max" required>
+                </div>
+                <div class="form-group">
+                    <label for="carousel-descripcion">Descripción</label>
+                    <textarea id="carousel-descripcion" rows="3" placeholder="Descripción del premio..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="carousel-imagen">URL de la Imagen *</label>
+                    <input type="url" id="carousel-imagen" placeholder="https://ejemplo.com/imagen.jpg" required>
+                    <small>Puedes usar imgur.com, imgbb.com o cualquier hosting de imágenes</small>
+                </div>
+                <div class="form-group">
+                    <label for="carousel-orden">Orden</label>
+                    <input type="number" id="carousel-orden" value="0" min="0">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="close-modal-btn" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="js/config.js"></script>
