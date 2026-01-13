@@ -204,9 +204,9 @@ if (carouselForm) {
 
 async function loadCarouselItems() {
     try {
-        const response = await fetch(\/carousel/all, {
+        const response = await fetch(`${CONFIG.API_URL}/carousel/all`, {
             headers: {
-                'Authorization': Bearer \
+                'Authorization': `Bearer ${state.token}`
             }
         });
         
@@ -215,25 +215,25 @@ async function loadCarouselItems() {
         const items = await response.json();
         
         if (items.length === 0) {
-            carouselItemsGrid.innerHTML = '<p class=\"loading\">No hay premios en el carrusel</p>';
+            carouselItemsGrid.innerHTML = '<p class="loading">No hay premios en el carrusel</p>';
             return;
         }
         
-        carouselItemsGrid.innerHTML = items.map(item => 
-            <div class=\"carousel-item-card\">
-                <img src=\"\\" alt=\"\\" onerror=\"this.src='https://via.placeholder.com/300x200/667eea/ffffff?text=Error+Cargando+Imagen'\">
-                <h3>\</h3>
-                <p>\</p>
-                <div class=\"carousel-item-actions\">
-                    <button class=\"btn-edit\" onclick=\"editCarouselItem(\)\"> Editar</button>
-                    <button class=\"btn-delete\" onclick=\"deleteCarouselItem(\)\"> Eliminar</button>
+        carouselItemsGrid.innerHTML = items.map(item => `
+            <div class="carousel-item-card">
+                <img src="${item.imagen_url}" alt="${item.titulo}" onerror="this.src='https://via.placeholder.com/300x200/667eea/ffffff?text=Error+Cargando+Imagen'">
+                <h3>${item.titulo}</h3>
+                <p>${item.descripcion || ''}</p>
+                <div class="carousel-item-actions">
+                    <button class="btn-edit" onclick="editCarouselItem(${item.id})"> Editar</button>
+                    <button class="btn-delete" onclick="deleteCarouselItem(${item.id})"> Eliminar</button>
                 </div>
             </div>
-        ).join('');
+        `).join('');
         
     } catch (error) {
         console.error('Error loading carousel items:', error);
-        carouselItemsGrid.innerHTML = '<p class=\"loading\">Error al cargar items</p>';
+        carouselItemsGrid.innerHTML = '<p class="loading">Error al cargar items</p>';
     }
 }
 
@@ -253,7 +253,7 @@ function openCarouselModal(item = null) {
         imagenInput.value = item.imagen_url;
         ordenInput.value = item.orden;
     } else {
-        modalTitle.textContent = 'Agregar Premio alCarrusel';
+        modalTitle.textContent = 'Agregar Premio al Carrusel';
         carouselForm.reset();
         itemIdInput.value = '';
     }
@@ -279,15 +279,15 @@ async function handleCarouselSubmit(e) {
     
     try {
         const url = itemId 
-            ? \/carousel/\
-            : \/carousel;
+            ? `${CONFIG.API_URL}/carousel/${itemId}`
+            : `${CONFIG.API_URL}/carousel`;
         const method = itemId ? 'PUT' : 'POST';
         
         const response = await fetch(url, {
             method,
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': Bearer \
+                'Authorization': `Bearer ${state.token}`
             },
             body: JSON.stringify(data)
         });
@@ -306,9 +306,9 @@ async function handleCarouselSubmit(e) {
 
 async function editCarouselItem(id) {
     try {
-        const response = await fetch(\/carousel/all, {
+        const response = await fetch(`${CONFIG.API_URL}/carousel/all`, {
             headers: {
-                'Authorization': Bearer \
+                'Authorization': `Bearer ${state.token}`
             }
         });
         const items = await response.json();
@@ -325,10 +325,10 @@ async function deleteCarouselItem(id) {
     if (!confirm('¿Estás seguro de eliminar este premio?')) return;
     
     try {
-        const response = await fetch(\/carousel/\, {
+        const response = await fetch(`${CONFIG.API_URL}/carousel/${id}`, {
             method: 'DELETE',
             headers: {
-                'Authorization': Bearer \
+                'Authorization': `Bearer ${state.token}`
             }
         });
         
@@ -346,4 +346,5 @@ async function deleteCarouselItem(id) {
 // Make functions global
 window.editCarouselItem = editCarouselItem;
 window.deleteCarouselItem = deleteCarouselItem;
+
 
