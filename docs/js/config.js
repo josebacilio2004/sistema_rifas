@@ -1,7 +1,7 @@
 // Configuration for the frontend application
 const CONFIG = {
     // API Base URL - change this for production
-    API_URL: 'https://sistema-rifas-backend.onrender.com',
+    API_URL: 'https://sistema-rifas-backend.onrender.com/api',
 
     // Polling interval for raffle updates (in milliseconds)
     POLL_INTERVAL: 10000, // 10 seconds
