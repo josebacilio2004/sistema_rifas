@@ -13,10 +13,14 @@ const router = express.Router();
 router.post('/login', async (req, res, next) => {
     try {
         const { username, password } = req.body;
+        console.log('🔐 Admin login attempt:', { username, hasPassword: !!password });
 
         if (!username || !password) {
+            console.log('❌ Missing credentials');
             return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
         }
+
+        console.log('📝 Checking JWT_SECRET exists:', !!process.env.JWT_SECRET);
 
         // Buscar admin en base de datos
         const result = await db.query(
@@ -24,16 +28,22 @@ router.post('/login', async (req, res, next) => {
             [username.toLowerCase()]
         );
 
+        console.log('🔍 Query result:', { found: result.rows.length > 0, username: username.toLowerCase() });
+
         if (result.rows.length === 0) {
+            console.log('❌ Admin not found in database');
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
         const admin = result.rows[0];
+        console.log('✅ Admin found:', { id: admin.id, username: admin.username });
 
         // Verificar contraseña
         const validPassword = await bcrypt.compare(password, admin.password_hash);
+        console.log('🔑 Password validation:', validPassword);
 
         if (!validPassword) {
+            console.log('❌ Invalid password');
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
@@ -54,6 +64,8 @@ router.post('/login', async (req, res, next) => {
             { expiresIn: '24h' }
         );
 
+        console.log('✅ Login successful, token generated');
+
         res.json({
             token,
             admin: {
@@ -62,6 +74,7 @@ router.post('/login', async (req, res, next) => {
             }
         });
     } catch (error) {
+        console.error('💥 Login error:', error.message);
         next(error);
     }
 });

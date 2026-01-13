@@ -16,6 +16,9 @@ const carouselRoutes = require('./routes/carousel');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy - necesario para Render y rate limiting
+app.set('trust proxy', 1);
+
 // CORS configuration - allow multiple origins
 const allowedOrigins = [
     'http://localhost:8080',
