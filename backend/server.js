@@ -46,6 +46,20 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Rate limiting - Protección contra abuso
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // Límite de 100 requests por ventana
+    message: { error: 'Demasiadas peticiones. Por favor, intenta de nuevo más tarde.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use('/api/', limiter);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
