@@ -9,6 +9,7 @@ const timerService = require('./services/timer');
 const authRoutes = require('./routes/auth');
 const raffleRoutes = require('./routes/raffles');
 const webhookRoutes = require('./routes/webhooks');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,6 +61,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/raffles', raffleRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

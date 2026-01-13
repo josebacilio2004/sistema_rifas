@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Sistema de Rifas</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+    <!-- Login View -->
+    <div id="login-view" class="view">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>🔐 Panel de Administración</h1>
+                <p>Sistema de Rifas</p>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" name="username" placeholder="faustina o christian" required
+                        autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" placeholder="●●●●●●●●" required
+                        autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-primary">Iniciar Sesión</button>
+                <div id="login-error" class="error-message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div id="dashboard-view" class="view hidden">
+        <nav class="admin-nav">
+            <div class="nav-brand">
+                <h1>📊 Panel Admin</h1>
+                <span id="admin-name" class="admin-name"></span>
+            </div>
+            <button id="logout-btn" class="btn-secondary">Cerrar Sesión</button>
+        </nav>
+
+        <main class="dashboard-content">
+            <!-- Stats Cards -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <h3>Total Usuarios</h3>
+                        <p id="total-users" class="stat-value">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <h3>Rifas Vendidas</h3>
+                        <p id="rifas-vendidas" class="stat-value">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-info">
+                        <h3>Rifas Disponibles</h3>
+                        <p id="rifas-disponibles" class="stat-value">0</p>
+                    </div>
+                </div>
+                <div class="stat-card highlight">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <h3>Total Recaudado</h3>
+                        <p id="total-recaudado" class="stat-value">S/ 0.00</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Users Table -->
+            <section class="users-section">
+                <div class="section-header">
+                    <h2>👥 Usuarios Registrados</h2>
+                    <button id="refresh-btn" class="btn-secondary">🔄 Actualizar</button>
+                </div>
+                <div class="table-container">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre Completo</th>
+                                <th>DNI</th>
+                                <th>Celular</th>
+                                <th>Rifas Compradas</th>
+                                <th>Números</th>
+                                <th>Total Gastado</th>
+                                <th>Fecha Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7" class="loading">Cargando datos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+
+</html>
