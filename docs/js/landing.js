@@ -192,3 +192,13 @@ document.querySelectorAll('.info-card, .feature-card').forEach(card => {
     card.style.transition = 'all 0.6s ease';
     observer.observe(card);
 });
+
+// Navbar scroll effect
+window.addEventListener('scroll', () => {
+    const navbar = document.querySelector('.navbar');
+    if (window.scrollY > 100) {
+        navbar.classList.add('scrolled');
+    } else {
+        navbar.classList.remove('scrolled');
+    }
+});
