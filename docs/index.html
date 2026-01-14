@@ -4,21 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Rifas - ¡Participa y Gana!</title>
+    <title>Sistema de Rifas - ¡Participa y Gana Premios Increíbles!</title>
+
+    <!-- Google Fonts - Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
     <link rel="stylesheet" href="css/landing.css">
 </head>
 
 <body>
-    <!-- Floating Particles -->
-    <div class="particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
+    <!-- Abstract Background Shapes -->
+    <div class="background-abstract">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+        <div class="radial-gradient-1"></div>
+        <div class="radial-gradient-2"></div>
     </div>
 
-    <!-- Navbar -->
+    <!-- Navbar Glassmorphism -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
@@ -27,7 +35,7 @@
             <ul class="nav-menu">
                 <li><a href="#premios">Premios</a></li>
                 <li><a href="#como-participar">Cómo Participar</a></li>
-                <li><a href="rifas.html" class="btn-comprar">🎫 Comprar Rifa</a></li>
+                <li><a href="rifas.html" class="btn-comprar">Comprar Rifa</a></li>
             </ul>
         </div>
     </nav>
@@ -35,60 +43,83 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <h1 class="animate-fade-in">🎉 GRAN SORTEO 2026 🎉</h1>
-            <p class="subtitle">¡No te pierdas la oportunidad de ganar increíbles premios!</p>
+            <h1 class="hero-title">GRAN SORTEO 2026</h1>
+            <p class="hero-subtitle">Gana premios increíbles con solo S/ 5.00 por número</p>
+
             <div class="hero-stats">
-                <div class="stat-item">
+                <div class="stat-card">
                     <span class="stat-number" id="available-count">100</span>
                     <span class="stat-label">Números Disponibles</span>
                 </div>
-                <div class="stat-item">
+                <div class="stat-card">
                     <span class="stat-number">S/ 5.00</span>
                     <span class="stat-label">Por Número</span>
                 </div>
             </div>
-            <a href="rifas.html" class="hero-cta">🎫 ¡Participa Ahora!</a>
+
+            <a href="rifas.html" class="btn-cta">
+                <span>¡Participa Ahora!</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
         </div>
     </section>
 
-    <!-- Premio Carousel Section -->
+    <!-- Carousel Section with Glassmorphism -->
     <section id="premios" class="carousel-section">
-        <h2 class="section-title">🏆 Premios Sorteados</h2>
+        <h2 class="section-title">Premios del Sorteo</h2>
+        <p class="section-subtitle">Increíbles premios te esperan</p>
+
         <div class="carousel">
             <div class="carousel-container">
                 <div class="carousel-track" id="carousel-track">
-                    <!-- Los slides se generarán dinámicamente -->
+                    <!-- Generado dinámicamente -->
                 </div>
             </div>
-            <button class="carousel-btn prev" id="prev-btn" aria-label="Anterior">‹</button>
-            <button class="carousel-btn next" id="next-btn" aria-label="Siguiente">›</button>
+            <button class="carousel-btn prev" id="prev-btn" aria-label="Anterior">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <button class="carousel-btn next" id="next-btn" aria-label="Siguiente">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
             <div class="carousel-dots" id="carousel-dots"></div>
         </div>
     </section>
 
-    <!-- Info Section -->
+    <!-- How to Participate Section -->
     <section id="como-participar" class="info-section">
         <h2 class="section-title">¿Cómo Participar?</h2>
+        <p class="section-subtitle">Sigue estos simples pasos</p>
+
         <div class="info-grid">
             <div class="info-card">
-                <div class="info-icon">1️⃣</div>
-                <h3>Click en "Comprar Rifa"</h3>
-                <p>Haz click en el botón naranja del menú superior</p>
+                <div class="step-number">01</div>
+                <h3>Comprar Rifa</h3>
+                <p>Click en el botón "Comprar Rifa" del menú superior</p>
             </div>
             <div class="info-card">
-                <div class="info-icon">2️⃣</div>
-                <h3>Regístrate o Inicia Sesión</h3>
-                <p>Crea tu cuenta con tus datos personales en segundos</p>
+                <div class="step-number">02</div>
+                <h3>Regístrate</h3>
+                <p>Crea tu cuenta con tus datos en segundos</p>
             </div>
             <div class="info-card">
-                <div class="info-icon">3️⃣</div>
-                <h3>Elige tus Números</h3>
-                <p>Selecciona uno o varios números de la suerte del 1 al 100</p>
+                <div class="step-number">03</div>
+                <h3>Elige Números</h3>
+                <p>Selecciona tus números de la suerte del 1 al 100</p>
             </div>
             <div class="info-card">
-                <div class="info-icon">4️⃣</div>
+                <div class="step-number">04</div>
                 <h3>Paga con Yape</h3>
-                <p>Realiza el pago seguro de S/ 5.00 por número vía Yape</p>
+                <p>Pago seguro de S/ 5.00 por número vía Yape</p>
             </div>
         </div>
     </section>
@@ -99,41 +130,48 @@
             <div class="feature-card">
                 <div class="feature-icon">💰</div>
                 <h3>Precio Accesible</h3>
-                <p>Solo S/ 5.00 por número. ¡Compra cuantos quieras!</p>
+                <p>Solo S/ 5.00 por número</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">📱</div>
                 <h3>Pago Fácil</h3>
-                <p>Paga de forma segura y rápida con Yape</p>
+                <p>Paga con Yape de forma segura</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🔔</div>
                 <h3>Notificaciones</h3>
-                <p>Recibe confirmación por WhatsApp al instante</p>
+                <p>Confirmación por WhatsApp</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🎯</div>
                 <h3>100% Transparente</h3>
-                <p>Sorteo en vivo por Facebook. ¡Total transparencia!</p>
+                <p>Sorteo en vivo por Facebook</p>
             </div>
         </div>
     </section>
 
-    <!-- CTA Section -->
+    <!-- CTA Final -->
     <section class="cta-section">
-        <div class="cta-content">
-            <h2>¿Listo para Participar?</h2>
-            <p>¡No esperes más! Los números se están agotando rápidamente</p>
-            <a href="rifas.html" class="cta-button">🎫 ¡COMPRAR RIFA AHORA!</a>
-            <p class="cta-note">* Sorteo el 31 de Enero de 2026 *</p>
+        <div class="cta-card">
+            <h2>¿Listo para Ganar?</h2>
+            <p>Los números se están agotando. ¡No pierdas tu oportunidad!</p>
+            <a href="rifas.html" class="btn-cta btn-cta-large">
+                <span>Comprar Mi Rifa Ahora</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+            <p class="cta-note">Sorteo: 31 de Enero de 2026</p>
         </div>
     </section>
 
     <!-- Footer -->
     <footer class="footer">
         <p>&copy; 2026 Sistema de Rifas. Todos los derechos reservados.</p>
-        <p>Para consultas: <a href="https://wa.me/51964910248">WhatsApp</a></p>
-        <p><a href="admin.html" style="color: #999; font-size: 0.8rem;">Admin</a></p>
+        <p>Consultas: <a href="https://wa.me/51964910248">WhatsApp</a></p>
+        <p><a href="admin.html" class="admin-link">Panel Admin</a></p>
     </footer>
 
     <script src="js/config.js"></script>
