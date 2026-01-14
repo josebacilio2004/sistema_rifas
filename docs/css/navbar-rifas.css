@@ -1,6 +1,6 @@
 ﻿/* Navbar Flotante con Fondo Oscuro para Rifas */
 .navbar-rifas {
-    background: rgba(15, 12, 41, 0.85);
+    background: rgba(30, 27, 60, 0.85);
     backdrop-filter: blur(25px) saturate(180%);
     -webkit-backdrop-filter: blur(25px) saturate(180%);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
@@ -45,7 +45,7 @@
 }
 
 .navbar-rifas.scrolled {
-    background: rgba(15, 12, 41, 0.95);
+    background: rgba(30, 27, 60, 0.95);
     padding: 12px 35px;
     box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6),
         0 0 0 1px rgba(255, 215, 0, 0.1);
