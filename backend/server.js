@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
@@ -12,6 +12,7 @@ const webhookRoutes = require('./routes/webhooks');
 const adminRoutes = require('./routes/admin');
 const paymentRoutes = require('./routes/payments');
 const carouselRoutes = require('./routes/carousel');
+const yapeWebhookRoutes = require('./routes/yape-webhook');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,7 +43,7 @@ app.use(cors({
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
-            console.log('⚠️  CORS blocked origin:', origin);
+            console.log('âš ï¸  CORS blocked origin:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -51,13 +52,13 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Rate limiting - Protección contra abuso
+// Rate limiting - ProtecciÃ³n contra abuso
 const rateLimit = require('express-rate-limit');
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100, // Límite de 100 requests por ventana
-    message: { error: 'Demasiadas peticiones. Por favor, intenta de nuevo más tarde.' },
+    max: 100, // LÃ­mite de 100 requests por ventana
+    message: { error: 'Demasiadas peticiones. Por favor, intenta de nuevo mÃ¡s tarde.' },
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -83,6 +84,7 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/carousel', carouselRoutes);
+app.use('/api/yape', yapeWebhookRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -103,7 +105,7 @@ async function startServer() {
     try {
         // Test database connection
         await db.query('SELECT NOW()');
-        console.log('✓ Database connected successfully');
+        console.log('âœ“ Database connected successfully');
 
         // Start cron job for reservation cleanup (runs every minute)
         cron.schedule('* * * * *', async () => {
@@ -113,13 +115,13 @@ async function startServer() {
                 console.error('Error in reservation cleanup cron:', error);
             }
         });
-        console.log('✓ Reservation cleanup scheduler started');
+        console.log('âœ“ Reservation cleanup scheduler started');
 
         app.listen(PORT, '0.0.0.0', () => {
-            console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-            console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-            console.log(`🌐 CORS enabled for: ${process.env.FRONTEND_URL || '*'}`);
-            console.log(`\n📋 Available endpoints:`);
+            console.log(`\nðŸš€ Server running on http://localhost:${PORT}`);
+            console.log(`ðŸ“Š Environment: ${process.env.NODE_ENV}`);
+            console.log(`ðŸŒ CORS enabled for: ${process.env.FRONTEND_URL || '*'}`);
+            console.log(`\nðŸ“‹ Available endpoints:`);
             console.log(`   POST   /api/auth/register`);
             console.log(`   GET    /api/raffles`);
             console.log(`   POST   /api/raffles/:id/reserve`);
@@ -141,3 +143,4 @@ process.on('SIGTERM', async () => {
     await db.end();
     process.exit(0);
 });
+

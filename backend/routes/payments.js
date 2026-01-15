@@ -152,3 +152,56 @@ router.get('/transaction/:code', async (req, res, next) => {
 });
 
 module.exports = router;
+
+/**
+ * GET /api/payments/check-status/:confirmationCode
+ * Check if a payment has been verified by Yape webhook
+ * Used by frontend for polling verification status
+ */
+router.get('/check-status/:confirmationCode', async (req, res, next) => {
+    try {
+        const { confirmationCode } = req.params;
+
+        if (!confirmationCode) {
+            return res.status(400).json({ error: 'Confirmation code required' });
+        }
+
+        const result = await db.query(
+            SELECT 
+                id,
+                raffle_id,
+                amount,
+                status,
+                verified_by_webhook,
+                yape_operation_code,
+                yape_sender_name,
+                webhook_verified_at,
+                created_at
+            FROM transactions
+            WHERE confirmation_code = "'
+        , [confirmationCode.toUpperCase()]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ 
+                error: 'Transaction not found',
+                verified: false
+            });
+        }
+
+        const transaction = result.rows[0];
+
+        res.json({
+            found: true,
+            verified: transaction.verified_by_webhook,
+            yape_operation_code: transaction.yape_operation_code,
+            yape_sender_name: transaction.yape_sender_name,
+            amount: transaction.amount,
+            verified_at: transaction.webhook_verified_at,
+            status: transaction.status,
+            raffle_id: transaction.raffle_id
+        });
+
+    } catch (error) {
+        next(error);
+    }
+});

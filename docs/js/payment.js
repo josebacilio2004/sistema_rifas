@@ -1,4 +1,4 @@
-// Payment Modal Logic with Confirmation Code
+// Payment Modal Logic with Automatic Yape Verification via Webhook
 
 const paymentModal = document.getElementById('payment-modal');
 const closeModalBtn = document.getElementById('close-modal');
@@ -6,11 +6,12 @@ const modalRaffleNumber = document.getElementById('modal-raffle-number');
 const timerDisplay = document.getElementById('timer-display');
 const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
 const cancelPaymentBtn = document.getElementById('cancel-payment-btn');
-const confirmCodeInput = document.getElementById('confirmation-code-input');
 const codeValidationMessage = document.getElementById('code-validation-message');
 
 let paymentTimer;
+let verificationPoller;
 let currentRaffleId;
+let currentConfirmationCode;
 let timeRemaining = 300; // 5 minutes
 
 // Disable confirm button initially
@@ -21,17 +22,14 @@ if (confirmPaymentBtn) {
 /**
  * Open payment modal for a raffle
  */
-function openPaymentModal(raffleId) {
+function openPaymentModal(raffleId, confirmationCode) {
     currentRaffleId = raffleId;
+    currentConfirmationCode = confirmationCode;
     modalRaffleNumber.textContent = raffleId;
 
-    // Reset confirmation code input
-    if (confirmCodeInput) {
-        confirmCodeInput.value = '';
-        confirmCodeInput.disabled = false;
-    }
+    // Reset UI
     if (codeValidationMessage) {
-        codeValidationMessage.textContent = '';
+        codeValidationMessage.textContent = '⏳ Esperando confirmación de pago...';
         codeValidationMessage.className = 'validation-message';
     }
     if (confirmPaymentBtn) {
@@ -41,8 +39,11 @@ function openPaymentModal(raffleId) {
     // Generate QR code
     generateQRCode(raffleId);
 
-    // Start timer
+    // Start  timer
     startPaymentTimer();
+
+    // Start verification polling
+    startVerificationPolling();
 
     // Show modal
     paymentModal.classList.remove('hidden');
@@ -52,9 +53,12 @@ function openPaymentModal(raffleId) {
  * Close payment modal
  */
 function closePaymentModal() {
-    // Clear timer
+    // Clear timers
     if (paymentTimer) {
         clearInterval(paymentTimer);
+    }
+    if (verificationPoller) {
+        clearInterval(verificationPoller);
     }
 
     // Hide modal
@@ -63,6 +67,7 @@ function closePaymentModal() {
     // Reset
     timeRemaining = 300;
     currentRaffleId = null;
+    currentConfirmationCode = null;
 }
 
 /**
@@ -71,8 +76,8 @@ function closePaymentModal() {
 function generateQRCode(raffleId) {
     const qrCodeContainer = document.getElementById('qr-code');
 
-    // Yape URL format: https://yape.com.pe/pago/[phone]?amount=[amount]&message=[message]
-    const yapePhone = '51964910248'; // Replace with actual Yape number
+    // Yape URL format
+    const yapePhone = '51964910248';
     const amount = '5.00';
     const message = encodeURIComponent(`Rifa ${raffleId}`);
     const yapeUrl = `https://yape.com.pe/pago/${yapePhone}?amount=${amount}&message=${message}`;
@@ -80,20 +85,9 @@ function generateQRCode(raffleId) {
     // Clear previous QR
     qrCodeContainer.innerHTML = '';
 
-    // Generate QR using qrcodejs or similar library (if loaded)
-    if (typeof QRCode !== 'undefined') {
-        new QRCode(qrCodeContainer, {
-            text: yapeUrl,
-            width: 200,
-            height: 200,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-        });
-    } else {
-        // Fallback: use API service
-        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(yapeUrl)}`;
-        qrCodeContainer.innerHTML = `<img src="${qrApiUrl}" alt="QR Code Yape" style="max-width: 200px;">`;
-    }
+    // Generate QR using API service
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(yapeUrl)}`;
+    qrCodeContainer.innerHTML = `<img src="${qrApiUrl}" alt="QR Code Yape" style="max-width: 200px;">`;
 }
 
 /**
@@ -109,6 +103,7 @@ function startPaymentTimer() {
 
         if (timeRemaining <= 0) {
             clearInterval(paymentTimer);
+            clearInterval(verificationPoller);
             showToast('Tiempo de pago expirado. La rifa ha sido liberada.', 'error');
             closePaymentModal();
             loadRaffles(); // Reload raffles
@@ -126,87 +121,94 @@ function updateTimerDisplay() {
 }
 
 /**
- * Validate confirmation code
+ * Start polling for payment verification
+ * Checks every 5 seconds if the payment has been verified by webhook
  */
-async function validateConfirmationCode() {
-    const code = confirmCodeInput.value.trim().toUpperCase();
-
-    if (!code) {
-        showValidationMessage('Por favor ingresa el código', 'error');
-        return false;
+function startVerificationPolling() {
+    // Clear any existing poller
+    if (verificationPoller) {
+        clearInterval(verificationPoller);
     }
 
-    if (code.length < 6) {
-        showValidationMessage('El código es muy corto', 'error');
-        return false;
-    }
+    // Poll every 5 seconds
+    verificationPoller = setInterval(async () => {
+        await checkPaymentStatus();
+    }, 5000);
+
+    // Also check immediately
+    checkPaymentStatus();
+}
+
+/**
+ * Check payment verification status
+ */
+async function checkPaymentStatus() {
+    if (!currentConfirmationCode) return;
 
     try {
-        // Call API to validate code
-        const response = await API.validateConfirmationCode(currentRaffleId, code);
+        const response = await fetch(`${CONFIG.API_URL}/payments/check-status/${currentConfirmationCode}`);
 
-        if (response.valid) {
-            showValidationMessage('✓ Código válido', 'success');
-            confirmCodeInput.disabled = true;
-            confirmPaymentBtn.disabled = false;
-            return true;
-        } else {
-            showValidationMessage('✗ Código inválido. Verifica e intenta de nuevo.', 'error');
-            return false;
+        if (response.ok) {
+            const data = await response.json();
+
+            if (data.verified) {
+                // Payment verified by webhook!
+                onPaymentVerified(data);
+            } else {
+                // Still waiting
+                showValidationMessage('⏳ Esperando confirmación de pago...', '');
+            }
         }
     } catch (error) {
-        console.error('Error validating code:', error);
-        showValidationMessage('Error al validar el código. Intenta nuevamente.', 'error');
-        return false;
+        console.error('Error checking payment status:', error);
     }
+}
+
+/**
+ * Handle payment verified by webhook
+ */
+function onPaymentVerified(data) {
+    // Stop polling
+    clearInterval(verificationPoller);
+
+    // Show success message
+    showValidationMessage(
+        `✅ Pago verificado - Operación #${data.yape_operation_code}`,
+        'success'
+    );
+
+    // Enable confirm button
+    if (confirmPaymentBtn) {
+        confirmPaymentBtn.disabled = false;
+    }
+
+    console.log('✅ Payment verified:', data);
 }
 
 /**
  * Show validation message
  */
 function showValidationMessage(message, type) {
-    codeValidationMessage.textContent = message;
-    codeValidationMessage.className = `validation-message ${type}`;
+    if (codeValidationMessage) {
+        codeValidationMessage.textContent = message;
+        codeValidationMessage.className = `validation-message ${type}`;
+    }
 }
 
 /**
- * Handle confirmation code input
- */
-if (confirmCodeInput) {
-    // Validate on enter
-    confirmCodeInput.addEventListener('keypress', async (e) => {
-        if (e.key === 'Enter') {
-            await validateConfirmationCode();
-        }
-    });
-
-    // Auto-validate when user types enough characters
-    confirmCodeInput.addEventListener('input', async (e) => {
-        const code = e.target.value.trim();
-        if (code.length >= 6) {
-            // Show loading state
-            showValidationMessage('Validando...', '');
-            await validateConfirmationCode();
-        } else {
-            showValidationMessage('', '');
-            confirmPaymentBtn.disabled = true;
-        }
-    });
-}
-
-/**
- * Confirm payment
+ * Confirm payment (complete the purchase)
  */
 async function confirmPayment() {
     try {
-        const response = await API.confirmPayment(currentRaffleId);
+        const response = await API.purchaseRaffle(currentRaffleId);
 
         if (response.success) {
-            // Clear timer
+            // Clear timers
             clearInterval(paymentTimer);
+            clearInterval(verificationPoller);
 
             // Show success
-            showToast('¡Pago confirmado exitosamente!', 'success');
+            showToast('¡Compra completada exitosamente!', 'success');
             triggerConfetti();
 
             // Close modal and reload
@@ -214,7 +216,7 @@ async function confirmPayment() {
             loadRaffles();
         }
     } catch (error) {
-        showToast(error.message || 'Error al confirmar el pago', 'error');
+        showToast(error.message || 'Error al completar la compra', 'error');
     }
 }
 
@@ -228,6 +230,7 @@ async function cancelPayment() {
 
             if (response.success) {
                 clearInterval(paymentTimer);
+                clearInterval(verificationPoller);
                 showToast('Pago cancelado', 'info');
                 closePaymentModal();
                 loadRaffles();

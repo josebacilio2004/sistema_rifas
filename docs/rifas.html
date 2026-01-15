@@ -209,21 +209,28 @@
                     </p>
                 </div>
 
-                <!-- Código de Confirmación -->
+                <!-- Estado de Verificación Automática -->
                 <div class="confirmation-code-section">
-                    <p class="confirmation-instructions">
-                        <strong>Importante:</strong> Después de realizar el pago, recibirás un código de confirmación
-                        por WhatsApp. Ingrésalo aquí para continuar:
-                    </p>
-                    <div class="confirmation-input-group">
-                        <input type="text" id="confirmation-code-input" class="form-input"
-                            placeholder="Ingresa el código (ej: ABC1234)" maxlength="10"
-                            style="text-transform: uppercase;" />
-                        <button id="validate-code-btn" class="btn btn-secondary" style="display: none;">
-                            Validar Código
-                        </button>
+                    <div class="verification-status">
+                        <div class="status-icon">
+                            <svg class="spin" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"
+                                    stroke-dasharray="32" stroke-dashoffset="0">
+                                    <animateTransform attributeName="transform" type="rotate" from="0 12 12"
+                                        to="360 12 12" dur="1s" repeatCount="indefinite" />
+                                </circle>
+                            </svg>
+                        </div>
+                        <div class="status-text">
+                            <p id="code-validation-message" class="validation-message">
+                                ⏳ Esperando confirmación de pago...
+                            </p>
+                            <p class="status-hint">
+                                Realiza el pago con Yape y recibirás confirmación automática
+                            </p>
+                        </div>
                     </div>
-                    <p id="code-validation-message" class="validation-message"></p>
                 </div>
 
                 <div class="payment-actions">

@@ -665,3 +665,36 @@
     cursor: not-allowed;
     background: #64748b;
 }
+/* Verification Status Styles */
+.verification-status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.status-icon svg {
+    color: #fbbf24;
+}
+
+.status-icon svg.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.status-text {
+    flex: 1;
+}
+
+.status-hint {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+.validation-message.success .status-icon svg {
+    color: #10b981;
+}

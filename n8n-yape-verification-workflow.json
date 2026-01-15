@@ -1,0 +1,186 @@
+{
+    "name": "Yape Payment Verification via WhatsApp",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "webhook-trigger",
+            "name": "WhatsApp Message Received",
+            "type": "n8n-nodes-base.whatsAppTrigger",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Parse Yape payment message from WhatsApp\n// Expected format: \"Recibiste S/ 5.00 de Juan Pérez - Operación #123456789\"\n\nconst message = $input.item.json.text || $input.item.json.message || '';\n\n// Regex patterns for Yape messages\nconst yapePatterns = [\n  /Recibiste\\s+S\\/\\s*([\\d.]+).*Operación\\s*#(\\d+)/i,\n  /Transferencia.*S\\/\\s*([\\d.]+).*Op\\.?\\s*#?(\\d+)/i,\n  /([\\d.]+)\\s*soles.*recibidos.*#(\\d+)/i\n];\n\nlet match = null;\nfor (const pattern of yapePatterns) {\n  match = message.match(pattern);\n  if (match) break;\n}\n\nif (!match) {\n  // Not a Yape payment message, skip\n  return null;\n}\n\nconst amount = parseFloat(match[1]);\nconst operationCode = match[2];\n\n// Extract sender name (try multiple patterns)\nlet senderName = 'Desconocido';\nconst namePatterns = [\n  /de\\s+([A-ZÁ-Ú][a-zá-ú]+(?:\\s+[A-ZÁ-Ú][a-zá-ú]+)*)/i,\n  /remitente:?\\s*([A-ZÁ-Ú][a-zá-ú]+(?:\\s+[A-ZÁ-Ú][a-zá-ú]+)*)/i\n];\n\nfor (const namePattern of namePatterns) {\n  const nameMatch = message.match(namePattern);\n  if (nameMatch) {\n    senderName = nameMatch[1].trim();\n    break;\n  }\n}\n\nreturn {\n  json: {\n    amount: amount,\n    operation_code: operationCode,\n    sender_name: senderName,\n    timestamp: new Date().toISOString(),\n    original_message: message\n  }\n};"
+            },
+            "id": "parse-yape-message",
+            "name": "Parse Yape Message",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "={{$env.BACKEND_URL}}/api/yape/webhook",
+                "method": "POST",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "secret",
+                            "value": "={{$env.YAPE_WEBHOOK_SECRET}}"
+                        },
+                        {
+                            "name": "operation_code",
+                            "value": "={{$json.operation_code}}"
+                        },
+                        {
+                            "name": "amount",
+                            "value": "={{$json.amount}}"
+                        },
+                        {
+                            "name": "sender_name",
+                            "value": "={{$json.sender_name}}"
+                        },
+                        {
+                            "name": "timestamp",
+                            "value": "={{$json.timestamp}}"
+                        }
+                    ]
+                }
+            },
+            "id": "call-backend-webhook",
+            "name": "Call Backend Webhook",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 2,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{$json.success}}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "check-success",
+            "name": "Webhook Success?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "message": "✅ Pago verificado - Operación #{{$json.operation_code}}\\nMonto: S/ {{$json.amount}}\\nDe: {{$json.sender_name}}",
+                "phoneNumber": "={{$env.ADMIN_WHATSAPP}}"
+            },
+            "id": "notify-success",
+            "name": "Notify Admin Success",
+            "type": "n8n-nodes-base.whatsApp",
+            "typeVersion": 1,
+            "position": [
+                1120,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "message": "❌ Error verificando pago\\nOperación: #{{$json.operation_code}}\\nError: {{$json.error || 'Unknown'}}",
+                "phoneNumber": "={{$env.ADMIN_WHATSAPP}}"
+            },
+            "id": "notify-error",
+            "name": "Notify Admin Error",
+            "type": "n8n-nodes-base.whatsApp",
+            "typeVersion": 1,
+            "position": [
+                1120,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "WhatsApp Message Received": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Yape Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Yape Message": {
+            "main": [
+                [
+                    {
+                        "node": "Call Backend Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Call Backend Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Webhook Success?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook Success?": {
+            "main": [
+                [
+                    {
+                        "node": "Notify Admin Success",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Notify Admin Error",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 1,
+    "updatedAt": "2026-01-15T08:00:00.000Z",
+    "versionId": "1"
+}
