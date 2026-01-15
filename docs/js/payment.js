@@ -1,213 +1,271 @@
-// Payment modal and countdown timer logic
+// Payment Modal Logic with Confirmation Code
 
-let paymentTimer = null;
-let currentRaffleId = null;
-
-// DOM Elements
 const paymentModal = document.getElementById('payment-modal');
+const closeModalBtn = document.getElementById('close-modal');
 const modalRaffleNumber = document.getElementById('modal-raffle-number');
 const timerDisplay = document.getElementById('timer-display');
-const qrCode = document.getElementById('qr-code');
 const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
 const cancelPaymentBtn = document.getElementById('cancel-payment-btn');
-const closeModalBtn = document.getElementById('close-modal');
+const confirmCodeInput = document.getElementById('confirmation-code-input');
+const codeValidationMessage = document.getElementById('code-validation-message');
 
-/**
- * Show payment modal
- */
-async function showPaymentModal(raffleId) {
-    currentRaffleId = raffleId;
+let paymentTimer;
+let currentRaffleId;
+let timeRemaining = 300; // 5 minutes
 
-    // Update modal content
-    if (modalRaffleNumber) {
-        modalRaffleNumber.textContent = raffleId;
-    }
-
-    // Show modal
-    if (paymentModal) {
-        paymentModal.classList.remove('hidden');
-    }
-
-    // Start countdown timer
-    startPaymentTimer();
-
-    // Initiate purchase to get QR code
-    try {
-        const userId = getCurrentUserId();
-        console.log('🛒 Iniciando compra de rifa:', {
-            raffleId,
-            userId,
-            timestamp: new Date().toISOString()
-        });
-
-        const response = await API.purchaseRaffle(raffleId, userId);
-
-        console.log('✅ Respuesta de compra recibida:', response);
-        console.log('📱 WhatsApp: El backend intentará enviar notificaciones ahora');
-        console.log('💡 TIP: Revisa logs del backend con: docker logs rifa-backend --tail 50');
-
-        // Display QR code
-        if (qrCode && response.payment.qr_code) {
-            qrCode.innerHTML = `<img src="${response.payment.qr_code}" alt="Código QR de Yape">`;
-            console.log('✅ Código QR generado y mostrado');
-        }
-    } catch (error) {
-        console.error('❌ Error en compra:', error);
-        showToast(error.message, 'error');
-        hidePaymentModal();
-    }
+// Disable confirm button initially
+if (confirmPaymentBtn) {
+    confirmPaymentBtn.disabled = true;
 }
 
 /**
- * Hide payment modal
+ * Open payment modal for a raffle
  */
-function hidePaymentModal() {
-    if (paymentModal) {
-        paymentModal.classList.add('hidden');
+function openPaymentModal(raffleId) {
+    currentRaffleId = raffleId;
+    modalRaffleNumber.textContent = raffleId;
+
+    // Reset confirmation code input
+    if (confirmCodeInput) {
+        confirmCodeInput.value = '';
+        confirmCodeInput.disabled = false;
+    }
+    if (codeValidationMessage) {
+        codeValidationMessage.textContent = '';
+        codeValidationMessage.className = 'validation-message';
+    }
+    if (confirmPaymentBtn) {
+        confirmPaymentBtn.disabled = true;
     }
 
-    // Stop timer
-    stopPaymentTimer();
+    // Generate QR code
+    generateQRCode(raffleId);
 
-    // Clear QR code
-    if (qrCode) {
-        qrCode.innerHTML = '';
+    // Start timer
+    startPaymentTimer();
+
+    // Show modal
+    paymentModal.classList.remove('hidden');
+}
+
+/**
+ * Close payment modal
+ */
+function closePaymentModal() {
+    // Clear timer
+    if (paymentTimer) {
+        clearInterval(paymentTimer);
     }
 
+    // Hide modal
+    paymentModal.classList.add('hidden');
+
+    // Reset
+    timeRemaining = 300;
     currentRaffleId = null;
 }
 
 /**
- * Start payment countdown timer
+ * Generate QR code for Yape payment
  */
-function startPaymentTimer() {
-    let timeRemaining = CONFIG.RESERVATION_TIMEOUT * 60; // Convert to seconds
+function generateQRCode(raffleId) {
+    const qrCodeContainer = document.getElementById('qr-code');
 
-    // Update display immediately
-    updateTimerDisplay(timeRemaining);
+    // Yape URL format: https://yape.com.pe/pago/[phone]?amount=[amount]&message=[message]
+    const yapePhone = '51964910248'; // Replace with actual Yape number
+    const amount = '5.00';
+    const message = encodeURIComponent(`Rifa ${raffleId}`);
+    const yapeUrl = `https://yape.com.pe/pago/${yapePhone}?amount=${amount}&message=${message}`;
 
-    // Stop any existing timer
-    stopPaymentTimer();
+    // Clear previous QR
+    qrCodeContainer.innerHTML = '';
 
-    // Start new timer
-    paymentTimer = setInterval(() => {
-        timeRemaining--;
-
-        if (timeRemaining <= 0) {
-            stopPaymentTimer();
-            handleTimerExpired();
-            return;
-        }
-
-        updateTimerDisplay(timeRemaining);
-    }, 1000);
+    // Generate QR using qrcodejs or similar library (if loaded)
+    if (typeof QRCode !== 'undefined') {
+        new QRCode(qrCodeContainer, {
+            text: yapeUrl,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+        });
+    } else {
+        // Fallback: use API service
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(yapeUrl)}`;
+        qrCodeContainer.innerHTML = `<img src="${qrApiUrl}" alt="QR Code Yape" style="max-width: 200px;">`;
+    }
 }
 
 /**
- * Stop payment timer
+ * Start payment timer
  */
-function stopPaymentTimer() {
-    if (paymentTimer) {
-        clearInterval(paymentTimer);
-        paymentTimer = null;
-    }
+function startPaymentTimer() {
+    timeRemaining = 300; // Reset to 5 minutes
+    updateTimerDisplay();
+
+    paymentTimer = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+
+        if (timeRemaining <= 0) {
+            clearInterval(paymentTimer);
+            showToast('Tiempo de pago expirado. La rifa ha sido liberada.', 'error');
+            closePaymentModal();
+            loadRaffles(); // Reload raffles
+        }
+    }, 1000);
 }
 
 /**
  * Update timer display
  */
-function updateTimerDisplay(seconds) {
-    if (!timerDisplay) return;
+function updateTimerDisplay() {
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+    timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
 
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+/**
+ * Validate confirmation code
+ */
+async function validateConfirmationCode() {
+    const code = confirmCodeInput.value.trim().toUpperCase();
 
-    timerDisplay.textContent = `${minutes}:${secs.toString().padStart(2, '0')}`;
-
-    // Change color when time is running out
-    if (seconds <= 60) {
-        timerDisplay.style.color = '#ef4444'; // Red
-    } else {
-        timerDisplay.style.color = 'inherit';
+    if (!code) {
+        showValidationMessage('Por favor ingresa el código', 'error');
+        return false;
     }
-}
 
-/**
- * Handle timer expiration
- */
-function handleTimerExpired() {
-    showToast('El tiempo de reserva ha expirado', 'warning');
-    hidePaymentModal();
-    loadRaffles(); // Refresh raffle grid
-}
-
-/**
- * Handle payment confirmation
- */
-async function handlePaymentConfirmation() {
-    // In a real app with payment gateway, you would verify payment here
-    // For now, we just show a success message
-
-    console.log('✅ Pago confirmado por el usuario para rifa:', currentRaffleId);
-    console.log('📱 Notificaciones de WhatsApp deberían haber sido enviadas');
-    console.log('   Para verificar, revisa:');
-    console.log('   1. Tu WhatsApp (+51964910248)');
-    console.log('   2. docker logs rifa-backend | Select-String "WhatsApp"');
-
-    // Trigger celebration confetti!
-    triggerCelebrationConfetti();
-
-    showToast(
-        `¡Pago confirmado! Has comprado la rifa N° ${currentRaffleId}. Recibirás una confirmación.`,
-        'success'
-    );
-
-    hidePaymentModal();
-
-    // Refresh raffles to show updated status
-    await loadRaffles();
-}
-
-/**
- * Handle payment cancellation
- */
-async function handlePaymentCancellation() {
-    if (!confirm('¿Estás seguro de que deseas cancelar esta reserva?')) {
-        return;
+    if (code.length < 6) {
+        showValidationMessage('El código es muy corto', 'error');
+        return false;
     }
 
     try {
-        const userId = getCurrentUserId();
-        await API.cancelReservation(currentRaffleId, userId);
+        // Call API to validate code
+        const response = await API.validateConfirmationCode(currentRaffleId, code);
 
-        showToast('Reserva cancelada', 'info');
-        hidePaymentModal();
-
-        // Refresh raffles
-        await loadRaffles();
+        if (response.valid) {
+            showValidationMessage('✓ Código válido', 'success');
+            confirmCodeInput.disabled = true;
+            confirmPaymentBtn.disabled = false;
+            return true;
+        } else {
+            showValidationMessage('✗ Código inválido. Verifica e intenta de nuevo.', 'error');
+            return false;
+        }
     } catch (error) {
-        showToast(error.message, 'error');
+        console.error('Error validating code:', error);
+        showValidationMessage('Error al validar el código. Intenta nuevamente.', 'error');
+        return false;
+    }
+}
+
+/**
+ * Show validation message
+ */
+function showValidationMessage(message, type) {
+    codeValidationMessage.textContent = message;
+    codeValidationMessage.className = `validation-message ${type}`;
+}
+
+/**
+ * Handle confirmation code input
+ */
+if (confirmCodeInput) {
+    // Validate on enter
+    confirmCodeInput.addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') {
+            await validateConfirmationCode();
+        }
+    });
+
+    // Auto-validate when user types enough characters
+    confirmCodeInput.addEventListener('input', async (e) => {
+        const code = e.target.value.trim();
+        if (code.length >= 6) {
+            // Show loading state
+            showValidationMessage('Validando...', '');
+            await validateConfirmationCode();
+        } else {
+            showValidationMessage('', '');
+            confirmPaymentBtn.disabled = true;
+        }
+    });
+}
+
+/**
+ * Confirm payment
+ */
+async function confirmPayment() {
+    try {
+        const response = await API.confirmPayment(currentRaffleId);
+
+        if (response.success) {
+            // Clear timer
+            clearInterval(paymentTimer);
+
+            // Show success
+            showToast('¡Pago confirmado exitosamente!', 'success');
+            triggerConfetti();
+
+            // Close modal and reload
+            closePaymentModal();
+            loadRaffles();
+        }
+    } catch (error) {
+        showToast(error.message || 'Error al confirmar el pago', 'error');
+    }
+}
+
+/**
+ * Cancel payment
+ */
+async function cancelPayment() {
+    if (confirm('¿Estás seguro de cancelar este pago? La rifa será liberada.')) {
+        try {
+            const response = await API.cancelReservation(currentRaffleId);
+
+            if (response.success) {
+                clearInterval(paymentTimer);
+                showToast('Pago cancelado', 'info');
+                closePaymentModal();
+                loadRaffles();
+            }
+        } catch (error) {
+            showToast(error.message || 'Error al cancelar', 'error');
+        }
     }
 }
 
 // Event listeners
+if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', () => {
+        if (confirm('¿Cancelar el proceso de pago?')) {
+            cancelPayment();
+        }
+    });
+}
+
 if (confirmPaymentBtn) {
-    confirmPaymentBtn.addEventListener('click', handlePaymentConfirmation);
+    confirmPaymentBtn.addEventListener('click', confirmPayment);
 }
 
 if (cancelPaymentBtn) {
-    cancelPaymentBtn.addEventListener('click', handlePaymentCancellation);
-}
-
-if (closeModalBtn) {
-    closeModalBtn.addEventListener('click', hidePaymentModal);
+    cancelPaymentBtn.addEventListener('click', cancelPayment);
 }
 
 // Close modal when clicking overlay
 if (paymentModal) {
-    paymentModal.addEventListener('click', (event) => {
-        if (event.target.classList.contains('modal-overlay')) {
-            hidePaymentModal();
-        }
-    });
+    const overlay = paymentModal.querySelector('.modal-overlay');
+    if (overlay) {
+        overlay.addEventListener('click', () => {
+            if (confirm('¿Cancelar el proceso de pago?')) {
+                cancelPayment();
+            }
+        });
+    }
 }
+
+// Make openPaymentModal available globally
+window.openPaymentModal = openPaymentModal;

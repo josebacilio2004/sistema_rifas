@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -207,6 +207,23 @@
                     <p class="qr-instructions">
                         Escanea este código QR con tu app de Yape para completar el pago
                     </p>
+                </div>
+
+                <!-- Código de Confirmación -->
+                <div class="confirmation-code-section">
+                    <p class="confirmation-instructions">
+                        <strong>Importante:</strong> Después de realizar el pago, recibirás un código de confirmación
+                        por WhatsApp. Ingrésalo aquí para continuar:
+                    </p>
+                    <div class="confirmation-input-group">
+                        <input type="text" id="confirmation-code-input" class="form-input"
+                            placeholder="Ingresa el código (ej: ABC1234)" maxlength="10"
+                            style="text-transform: uppercase;" />
+                        <button id="validate-code-btn" class="btn btn-secondary" style="display: none;">
+                            Validar Código
+                        </button>
+                    </div>
+                    <p id="code-validation-message" class="validation-message"></p>
                 </div>
 
                 <div class="payment-actions">

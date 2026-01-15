@@ -596,4 +596,72 @@
 .toast-message {
     font-size: 0.875rem;
     color: var(--color-text-secondary);
+}/* Confirmation Code Section */
+.confirmation-code-section {
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.confirmation-instructions {
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.confirmation-instructions strong {
+    color: #fbbf24;
+}
+
+.confirmation-input-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.confirmation-input-group .form-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+.confirmation-input-group .form-input:focus {
+    outline: none;
+    border-color: #fbbf24;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.confirmation-input-group .form-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.validation-message {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    min-height: 20px;
+}
+
+.validation-message.success {
+    color: #10b981;
+}
+
+.validation-message.error {
+    color: #ef4444;
+}
+
+#confirm-payment-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #64748b;
 }
