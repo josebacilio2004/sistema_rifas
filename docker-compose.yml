@@ -36,6 +36,7 @@ services:
       DATABASE_URL: postgresql://rifauser:rifapass123@postgres:5432/rifa_db
       FRONTEND_URL: http://localhost:8080
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/webhook/rifa}
+      YAPE_WEBHOOK_SECRET: 26e235db76877dabc9923ed8bbb41f53264519380bd60ff8a86c3b3c359ee41f
     ports:
       - "3000:3000"
     depends_on:
@@ -61,6 +62,10 @@ services:
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - WEBHOOK_URL=http://n8n:5678/
+      # Yape Verification Variables
+      - BACKEND_URL=http://backend:3000
+      - YAPE_WEBHOOK_SECRET=26e235db76877dabc9923ed8bbb41f53264519380bd60ff8a86c3b3c359ee41f
+      - ADMIN_WHATSAPP=51964910248
     ports:
       - "5678:5678"
     volumes:
