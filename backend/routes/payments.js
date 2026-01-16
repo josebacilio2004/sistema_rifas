@@ -151,8 +151,6 @@ router.get('/transaction/:code', async (req, res, next) => {
     }
 });
 
-module.exports = router;
-
 /**
  * GET /api/payments/check-status/:confirmationCode
  * Check if a payment has been verified by Yape webhook
@@ -166,7 +164,7 @@ router.get('/check-status/:confirmationCode', async (req, res, next) => {
             return res.status(400).json({ error: 'Confirmation code required' });
         }
 
-        const result = await db.query(
+        const result = await db.query(`
             SELECT 
                 id,
                 raffle_id,
@@ -178,11 +176,11 @@ router.get('/check-status/:confirmationCode', async (req, res, next) => {
                 webhook_verified_at,
                 created_at
             FROM transactions
-            WHERE confirmation_code = "'
-        , [confirmationCode.toUpperCase()]);
+            WHERE confirmation_code = $1
+        `, [confirmationCode.toUpperCase()]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 error: 'Transaction not found',
                 verified: false
             });
@@ -205,3 +203,5 @@ router.get('/check-status/:confirmationCode', async (req, res, next) => {
         next(error);
     }
 });
+
+module.exports = router;
