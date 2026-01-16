@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const db = require('../services/database');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 
@@ -6,7 +6,7 @@ const router = express.Router();
 
 /**
  * POST /api/payments/generate-code
- * Generar código de confirmación para pago
+ * Generar cÃ³digo de confirmaciÃ³n para pago
  */
 router.post('/generate-code', verifyToken, async (req, res, next) => {
     try {
@@ -22,7 +22,7 @@ router.post('/generate-code', verifyToken, async (req, res, next) => {
 
         const transactions = [];
 
-        // Crear transacción por cada rifa
+        // Crear transacciÃ³n por cada rifa
         for (const raffle_id of raffle_ids) {
             const result = await db.query(
                 `INSERT INTO transactions (user_id, raffle_id, amount, payment_method, status)
@@ -34,7 +34,7 @@ router.post('/generate-code', verifyToken, async (req, res, next) => {
         }
 
         res.json({
-            message: 'Códigos de confirmación generados',
+            message: 'CÃ³digos de confirmaciÃ³n generados',
             transactions
         });
     } catch (error) {
@@ -55,7 +55,7 @@ router.post('/verify', verifyToken, isAdmin, async (req, res, next) => {
         }
 
         await db.transaction(async (client) => {
-            // Buscar y verificar transacción
+            // Buscar y verificar transacciÃ³n
             const txResult = await client.query(
                 `UPDATE transactions 
                  SET verified = true, 
@@ -68,7 +68,7 @@ router.post('/verify', verifyToken, isAdmin, async (req, res, next) => {
             );
 
             if (txResult.rows.length === 0) {
-                throw new Error('Código inválido o ya verificado');
+                throw new Error('CÃ³digo invÃ¡lido o ya verificado');
             }
 
             const transaction = txResult.rows[0];
@@ -95,7 +95,7 @@ router.post('/verify', verifyToken, isAdmin, async (req, res, next) => {
 
 /**
  * GET /api/payments/pending
- * Obtener pagos pendientes de verificación (Solo Admin)
+ * Obtener pagos pendientes de verificaciÃ³n (Solo Admin)
  */
 router.get('/pending', verifyToken, isAdmin, async (req, res, next) => {
     try {
@@ -124,7 +124,7 @@ router.get('/pending', verifyToken, isAdmin, async (req, res, next) => {
 
 /**
  * GET /api/payments/transaction/:code
- * Obtener detalles de transacción por código
+ * Obtener detalles de transacciÃ³n por cÃ³digo
  */
 router.get('/transaction/:code', async (req, res, next) => {
     try {
@@ -142,7 +142,7 @@ router.get('/transaction/:code', async (req, res, next) => {
         `, [code.toUpperCase()]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Transacción no encontrada' });
+            return res.status(404).json({ error: 'TransacciÃ³n no encontrada' });
         }
 
         res.json(result.rows[0]);
@@ -205,3 +205,4 @@ router.get('/check-status/:confirmationCode', async (req, res, next) => {
 });
 
 module.exports = router;
+
