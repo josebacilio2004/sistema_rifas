@@ -36,7 +36,7 @@ const API = {
      * Register a new user
      */
     async registerUser(userData) {
-        return this.request('/auth/register', {
+        return await this.request('/auth/register', {
             method: 'POST',
             body: JSON.stringify(userData)
         });
@@ -69,7 +69,8 @@ const API = {
     /**
      * Purchase a raffle
      */
-    async purchaseRaffle(raffleId, userId) {
+    async purchaseRaffle(raffleId) {
+        const userId = localStorage.getItem('user_id');
         return this.request(`/raffles/${raffleId}/purchase`, {
             method: 'POST',
             body: JSON.stringify({ user_id: userId })
@@ -79,7 +80,8 @@ const API = {
     /**
      * Cancel a reservation
      */
-    async cancelReservation(raffleId, userId) {
+    async cancelReservation(raffleId) {
+        const userId = localStorage.getItem('user_id');
         return this.request(`/raffles/${raffleId}/cancel`, {
             method: 'DELETE',
             body: JSON.stringify({ user_id: userId })
@@ -139,48 +141,3 @@ function showToast(message, type = 'info', title = '') {
         setTimeout(() => toast.remove(), 300);
     }, 5000);
 }
-
-    /**
-     * Validate confirmation code for payment
-     */
-    async validateConfirmationCode(raffleId, code) {
-        const response = await fetch("'/payments/verify', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                raffle_id: raffleId,
-                confirmation_code: code
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Error validando código');
-        }
-
-        return await response.json();
-    },
-
-    /**
-     * Confirm payment completion
-     */
-    async confirmPayment(raffleId) {
-        const response = await fetch("'/raffles/"'/purchase', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                user_id: localStorage.getItem('user_id')
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Error confirmando pago');
-        }
-
-        return await response.json();
-    },
