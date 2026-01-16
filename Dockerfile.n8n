@@ -1,4 +1,8 @@
 FROM n8nio/n8n:latest
 
-# Ejecutar n8n
-CMD ["n8n"]
+# n8n ya viene con un ENTRYPOINT configurado
+# Solo necesitamos asegurarnos de que use el puerto correcto
+EXPOSE 10000
+
+# La imagen base ya ejecuta n8n automáticamente
+# No necesitamos CMD porque ya está en el ENTRYPOINT
