@@ -164,7 +164,7 @@ router.post('/:id/reserve', async (req, res, next) => {
 router.post('/:id/purchase', async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { user_id } = req.body;
+        let { user_id } = req.body;
 
         // Validate raffle ID
         const raffleValidation = validateRaffleId(id);
@@ -173,7 +173,8 @@ router.post('/:id/purchase', async (req, res, next) => {
         }
 
         if (!user_id) {
-            return res.status(400).json({ error: 'user_id es requerido' });
+            user_id = `guest_${Date.now()}`;
+            console.log('📝 Generated temporary user_id:', user_id);
         }
 
         // Use transaction
