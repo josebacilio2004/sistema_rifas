@@ -200,18 +200,20 @@ router.post('/:id/purchase', async (req, res, next) => {
                 throw new Error('Esta rifa ya fue vendida');
             }
 
-            // Si está reserved, verificar si es muy reciente (< 1 minuto)
+            // Si está reserved por OTRO usuario (no el mismo), verificar tiempo
             if (current.status === 'reserved' && current.reserved_by && current.reserved_by !== user_id) {
                 const reservedAt = new Date(current.reserved_at);
                 const now = new Date();
                 const secondsSinceReserved = (now - reservedAt) / 1000;
 
-                // Solo bloquear si fue reservada hace MENOS de 1 minuto
+                // Solo bloquear si OTRO usuario la reservó hace MENOS de 1 minuto
                 if (secondsSinceReserved < 60) {
-                    throw new Error('Esta rifa acaba de ser reservada. Intenta en 1 minuto.');
+                    throw new Error('Esta rifa acaba de ser reservada por otro usuario. Intenta en 1 minuto.');
                 }
                 // Si > 1 min, permitir override
             }
+
+            // Si está reserved por el MISMO user, permitir (es su propia reserva del carrito)
 
             // Marcar como sold
             const updateResult = await client.query(
