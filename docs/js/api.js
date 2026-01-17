@@ -69,11 +69,16 @@ const API = {
     /**
      * Purchase a raffle
      */
-    async purchaseRaffle(raffleId) {
+    async purchaseRaffle(raffleId, yapeData = {}) {
         const userId = localStorage.getItem('user_id');
+        const body = {
+            user_id: userId,
+            ...yapeData  // Include yape_operation_code and yape_sender_name if provided
+        };
+
         return this.request(`/raffles/${raffleId}/purchase`, {
             method: 'POST',
-            body: JSON.stringify({ user_id: userId })
+            body: JSON.stringify(body)
         });
     },
 

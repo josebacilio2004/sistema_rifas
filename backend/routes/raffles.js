@@ -164,7 +164,7 @@ router.post('/:id/reserve', async (req, res, next) => {
 router.post('/:id/purchase', async (req, res, next) => {
     try {
         const { id } = req.params;
-        let { user_id } = req.body;
+        let { user_id, yape_operation_code, yape_sender_name } = req.body;
 
         // Validate raffle ID
         const raffleValidation = validateRaffleId(id);
@@ -175,6 +175,27 @@ router.post('/:id/purchase', async (req, res, next) => {
         if (!user_id) {
             user_id = `guest_${Date.now()}`;
             console.log('📝 Generated temporary user_id:', user_id);
+        }
+
+        // Validate Yape data (required for manual verification)
+        if (!yape_operation_code || !yape_sender_name) {
+            return res.status(400).json({
+                error: 'Código de operación Yape y nombre del yapero son requeridos'
+            });
+        }
+
+        // Check for duplicate Yape operation code
+        const duplicateCheck = await db.query(
+            `SELECT id FROM transactions 
+             WHERE yape_operation_code = $1 
+             AND status IN ('verified', 'pending_verification')`,
+            [yape_operation_code]
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+            return res.status(400).json({
+                error: 'Este código de operación ya fue usado. Verifica tu código.'
+            });
         }
 
         // Use transaction
@@ -215,45 +236,76 @@ router.post('/:id/purchase', async (req, res, next) => {
 
             // Si está reserved por el MISMO user, permitir (es su propia reserva del carrito)
 
-            // Marcar como sold
-            const updateResult = await client.query(
-                `UPDATE raffles 
-                 SET status = 'sold',
-                     purchased_by = $1,
-                     purchased_at = NOW(),
-                     reserved_at = NULL,
-                     reserved_by = NULL,
-                     reserved_until = NULL
-                 WHERE id = $2
-                 RETURNING id, status, purchased_at`,
-                [user_id, raffleValidation.id]
-            );
+            // NO marcar como sold todavía - dejar en reserved
+            // La rifa se marcará como sold cuando admin apruebe la verificación
 
-            if (updateResult.rows.length === 0) {
-                throw new Error('No se pudo completar la compra');
-            }
-
-            // Create transaction record
+            // Create transaction record with Yape data - PENDING VERIFICATION
             const transactionResult = await client.query(
-                `INSERT INTO transactions (raffle_id, user_id, amount, status, confirmation_code, created_at)
-                 VALUES ($1, $2, 5.00, 'pending', $3, NOW())
+                `INSERT INTO transactions (
+                    raffle_id, 
+                    user_id, 
+                    amount, 
+                    payment_method,
+                    status, 
+                    confirmation_code,
+                    yape_operation_code,
+                    yape_sender_name,
+                    verified_by_webhook,
+                    created_at
+                 )
+                 VALUES ($1, $2, 5.00, 'yape', 'pending_verification', $3, $4, $5, false, NOW())
                  RETURNING id, confirmation_code`,
-                [raffleValidation.id, user_id, generateConfirmationCode()]
+                [
+                    raffleValidation.id,
+                    user_id,
+                    generateConfirmationCode(),
+                    yape_operation_code,
+                    yape_sender_name
+                ]
             );
 
             return {
-                raffle: updateResult.rows[0],
+                raffle_id: raffleValidation.id,
                 transaction: transactionResult.rows[0]
             };
         });
 
+        // Send WhatsApp notification to ADMIN
+        if (whatsappService) {
+            try {
+                const userResult = await db.query(
+                    'SELECT nombre, apellido, dni, celular FROM users WHERE id = $1',
+                    [user_id]
+                );
+
+                if (userResult.rows.length > 0) {
+                    const user = userResult.rows[0];
+                    const adminMessage = `🔔 *Nueva compra pendiente*\n\n` +
+                        `👤 ${user.nombre} ${user.apellido}\n` +
+                        `📱 ${user.celular}\n` +
+                        `🎟️ Rifa #${raffleValidation.id}\n` +
+                        `💰 S/ 5.00\n\n` +
+                        `*Datos Yape:*\n` +
+                        `📝 Código: ${yape_operation_code}\n` +
+                        `👤 Yapero: ${yape_sender_name}\n\n` +
+                        `Verifica en admin panel`;
+
+                    await whatsappService.sendMessage('+51964910248', adminMessage);
+                    console.log('✅ Admin WhatsApp sent');
+                }
+            } catch (whatsappError) {
+                console.error('❌ Admin WhatsApp failed:', whatsappError.message);
+            }
+        }
+
         // Send success response
         res.json({
-            message: 'Compra exitosa',
-            raffle_id: result.raffle.id,
+            success: true,
+            message: 'Compra registrada. Será verificada por un administrador.',
+            raffle_id: result.raffle_id,
             transaction_id: result.transaction.id,
             confirmation_code: result.transaction.confirmation_code,
-            status: 'pending_payment'
+            status: 'pending_verification'
         });// Send WhatsApp notifications (DUAL: Customer + Admin)
         // Each notification is independent - if one fails, the other still sends
         if (whatsappService) {

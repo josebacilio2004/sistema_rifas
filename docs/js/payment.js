@@ -20,7 +20,7 @@ if (confirmPaymentBtn) {
 }
 
 /**
- * Open payment modal for raffle(s)
+ * Open payment modal for raffle(s) - MANUAL VERIFICATION
  */
 function openPaymentModal(raffleIds, confirmationCode, totalAmount) {
     // Support both single raffle and multiple raffles
@@ -41,13 +41,15 @@ function openPaymentModal(raffleIds, confirmationCode, totalAmount) {
         amountValue.textContent = `S/ ${amount.toFixed(2)}`;
     }
 
-    // Reset UI
-    if (codeValidationMessage) {
-        codeValidationMessage.textContent = '⏳ Esperando confirmación de pago...';
-        codeValidationMessage.className = 'validation-message';
-    }
+    // Clear input fields
+    const yapeCodeInput = document.getElementById('yape-code');
+    const yapeSenderInput = document.getElementById('yape-sender');
+    if (yapeCodeInput) yapeCodeInput.value = '';
+    if (yapeSenderInput) yapeSenderInput.value = '';
+
+    // ALWAYS enable confirm button (manual verification)
     if (confirmPaymentBtn) {
-        confirmPaymentBtn.disabled = true;
+        confirmPaymentBtn.disabled = false;
     }
 
     // Generate QR code
@@ -56,8 +58,7 @@ function openPaymentModal(raffleIds, confirmationCode, totalAmount) {
     // Start timer
     startPaymentTimer();
 
-    // Start verification polling
-    startVerificationPolling();
+    // NO POLLING - Manual verification only
 
     // Show modal
     paymentModal.classList.remove('hidden');
@@ -228,27 +229,74 @@ function showValidationMessage(message, type) {
 }
 
 /**
- * Confirm payment (complete the purchase)
+ * Confirm payment (complete the purchase) - MANUAL VERIFICATION
  */
 async function confirmPayment() {
-    try {
-        const response = await API.purchaseRaffle(currentRaffleId);
+    // Get Yape verification fields
+    const yapeCodeInput = document.getElementById('yape-code');
+    const yapeSenderInput = document.getElementById('yape-sender');
 
-        if (response.success) {
+    const yapeCode = yapeCodeInput ? yapeCodeInput.value.trim() : '';
+    const yapeSender = yapeSenderInput ? yapeSenderInput.value.trim() : '';
+
+    // Validate fields
+    if (!yapeCode || !yapeSender) {
+        showToast('Por favor completa todos los campos de verificación', 'error');
+
+        // Highlight empty fields
+        if (!yapeCode && yapeCodeInput) {
+            yapeCodeInput.style.borderColor = '#dc3545';
+        }
+        if (!yapeSender && yapeSenderInput) {
+            yapeSenderInput.style.borderColor = '#dc3545';
+        }
+        return;
+    }
+
+    // Validate code length (at least 6 characters)
+    if (yapeCode.length < 6) {
+        showToast('El código de operación debe tener al menos 6 caracteres', 'error');
+        if (yapeCodeInput) yapeCodeInput.style.borderColor = '#dc3545';
+        return;
+    }
+
+    // Reset border colors
+    if (yapeCodeInput) yapeCodeInput.style.borderColor = '';
+    if (yapeSenderInput) yapeSenderInput.style.borderColor = '';
+
+    try {
+        // Disable button to prevent double-click
+        if (confirmPaymentBtn) {
+            confirmPaymentBtn.disabled = true;
+            confirmPaymentBtn.innerHTML = '<span>Procesando...</span>';
+        }
+
+        // Call purchase API with Yape data
+        const response = await API.purchaseRaffle(currentRaffleId, {
+            yape_operation_code: yapeCode,
+            yape_sender_name: yapeSender
+        });
+
+        if (response.success || response.message) {
             // Clear timers
             clearInterval(paymentTimer);
-            clearInterval(verificationPoller);
 
-            // Show success
-            showToast('¡Compra completada exitosamente!', 'success');
-            triggerConfetti();
+            // Show success message
+            showToast(response.message || '¡Compra registrada! Será verificada por un administrador', 'success');
 
             // Close modal and reload
             closePaymentModal();
             loadRaffles();
         }
     } catch (error) {
-        showToast(error.message || 'Error al completar la compra', 'error');
+        console.error('Error confirming payment:', error);
+        showToast(error.message || 'Error al confirmar el pago', 'error');
+
+        // Re-enable button
+        if (confirmPaymentBtn) {
+            confirmPaymentBtn.disabled = false;
+            confirmPaymentBtn.innerHTML = '<span>He completado el pago</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 5.5L7.5 14.5L3.5 10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+        }
     }
 }
 

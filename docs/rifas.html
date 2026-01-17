@@ -209,27 +209,35 @@
                     </p>
                 </div>
 
-                <!-- Estado de Verificación Automática -->
-                <div class="confirmation-code-section">
-                    <div class="verification-status">
-                        <div class="status-icon">
-                            <svg class="spin" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"
-                                    stroke-dasharray="32" stroke-dashoffset="0">
-                                    <animateTransform attributeName="transform" type="rotate" from="0 12 12"
-                                        to="360 12 12" dur="1s" repeatCount="indefinite" />
-                                </circle>
-                            </svg>
-                        </div>
-                        <div class="status-text">
-                            <p id="code-validation-message" class="validation-message">
-                                ⏳ Esperando confirmación de pago...
-                            </p>
-                            <p class="status-hint">
-                                Realiza el pago con Yape y recibirás confirmación automática
-                            </p>
-                        </div>
+                <!-- Campos de Verificación Manual -->
+                <div class="yape-verification-section">
+                    <div class="verification-info">
+                        <p class="info-text">
+                            📱 Después de pagar, ingresa los datos de tu comprobante Yape:
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="yape-code">Código de Operación Yape:</label>
+                        <input type="text" id="yape-code" class="form-input" placeholder="Ej: 789456123" maxlength="20"
+                            required>
+                        <small class="input-hint">Encuéntralo en tu comprobante Yape</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="yape-sender">Nombre completo (quien hizo el pago):</label>
+                        <input type="text" id="yape-sender" class="form-input" placeholder="Ej: Juan Pérez García"
+                            maxlength="100" required>
+                        <small class="input-hint">Debe coincidir con tu cuenta Yape</small>
+                    </div>
+
+                    <div class="verification-notice">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M10 0C4.48 0 0 4.48 0 10C0 15.52 4.48 20 10 20C15.52 20 20 15.52 20 10C20 4.48 15.52 0 10 0ZM11 15H9V13H11V15ZM11 11H9V5H11V11Z"
+                                fill="#FFA500" />
+                        </svg>
+                        <p>Tu compra será verificada por un administrador en breve</p>
                     </div>
                 </div>
 
