@@ -181,7 +181,7 @@ router.post('/:id/purchase', async (req, res, next) => {
         const result = await db.transaction(async (client) => {
             // Get current raffle estado
             const raffle = await client.query(
-                `SELECT id, status, reserved_by, reserved_at, user_id as buyer_id
+                `SELECT id, status, reserved_by, reserved_at
                  FROM raffles 
                  WHERE id = $1`,
                 [raffleValidation.id]
