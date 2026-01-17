@@ -255,20 +255,16 @@ async function showPaymentModalMultiple(raffleIds) {
             await API.purchaseRaffle(raffleId);
         }
 
-        // Generate QR code for total amount
-        if (qrCode) {
-            // Placeholder for multi-raffle QR
-            qrCode.innerHTML = `
-                <div style="padding: 2rem; text-align: center;">
-                    <p style="margin-bottom: 1rem;">Total a pagar: S/ ${totalAmount.toFixed(2)}</p>
-                    <p style="font-size: 0.875rem; color: var(--color-text-secondary);">
-                        Rifas: ${raffleIds.join(', ')}
-                    </p>
-                </div>
-            `;
+        // Open payment modal with first raffle ID
+        // Payment modal will show the static Yape QR
+        if (typeof showPaymentModal === 'function') {
+            showPaymentModal(raffleIds[0]);
+        } else {
+            showToast('Compra realizada. Por favor realiza el pago con Yape.', 'success');
         }
 
-        // Clear cart after successful purchase
+        // Close cart panel
+        cartPanel.classList.add('hidden');
         clearCart();
 
     } catch (error) {
