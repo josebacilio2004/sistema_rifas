@@ -193,25 +193,24 @@ router.post('/:id/purchase', async (req, res, next) => {
 
             const current = raffle.rows[0];
 
-            // Permitir purchase si:
-            // 1. Está available (compra directa)
-            // 2. Está reserved por este mismo user
-            // 3. Está reserved pero expiró (will overwrite)
+            // Permitir purchase si NO está sold
+            // Esto permite compra directa de available y override de reserved
 
             if (current.status === 'sold') {
                 throw new Error('Esta rifa ya fue vendida');
             }
 
-            // Si está reservada por OTRO usuario Y no ha expirado, rechazar
+            // Si está reserved, verificar si es muy reciente (< 1 minuto)
             if (current.status === 'reserved' && current.reserved_by && current.reserved_by !== user_id) {
                 const reservedAt = new Date(current.reserved_at);
                 const now = new Date();
-                const minutesSinceReserved = (now - reservedAt) / 1000 / 60;
+                const secondsSinceReserved = (now - reservedAt) / 1000;
 
-                if (minutesSinceReserved < 5) {
-                    throw new Error('Esta rifa está reservada por otro usuario');
+                // Solo bloquear si fue reservada hace MENOS de 1 minuto
+                if (secondsSinceReserved < 60) {
+                    throw new Error('Esta rifa acaba de ser reservada. Intenta en 1 minuto.');
                 }
-                // Si pasaron más de 5 min, permitir purchase (override expired)
+                // Si > 1 min, permitir override
             }
 
             // Marcar como sold
