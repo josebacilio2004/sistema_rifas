@@ -1,4 +1,24 @@
-﻿app.set('trust proxy', 1);
+﻿require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const cron = require('node-cron');
+const db = require('./services/database');
+const timerService = require('./services/timer');
+
+// Import routes
+const authRoutes = require('./routes/auth');
+const raffleRoutes = require('./routes/raffles');
+const webhookRoutes = require('./routes/webhooks');
+const adminRoutes = require('./routes/admin');
+const paymentRoutes = require('./routes/payments');
+const carouselRoutes = require('./routes/carousel');
+const yapeWebhookRoutes = require('./routes/yape-webhook');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Trust proxy - necesario para Render y rate limiting
+app.set('trust proxy', 1);
 
 // CORS configuration - allow multiple origins
 const allowedOrigins = [
@@ -87,14 +107,22 @@ async function startServer() {
         await db.query('SELECT NOW()');
         console.log('âœ“ Database connected successfully');
 
-        // Start cron job for reservation cleanup (runs every minute)
+        // Cron job para limpiar reservas expiradas cada minuto
         cron.schedule('* * * * *', async () => {
-            try {
-                await timerService.cleanExpiredReservations();
-            } catch (error) {
-                console.error('Error in reservation cleanup cron:', error);
-            }
+            await timerService.cleanExpiredReservations();
         });
+
+        // Auto-cleanup interval (backup, runs every minute)
+        setInterval(async () => {
+            try {
+                const cleaned = await timerService.cleanExpiredReservations();
+                if (cleaned > 0) {
+                    console.log(`✅ Cleaned ${cleaned} expired reservations`);
+                }
+            } catch (error) {
+                console.error('❌ Error in auto-cleanup:', error.message);
+            }
+        }, 60000);
         console.log('âœ“ Reservation cleanup scheduler started');
 
         app.listen(PORT, '0.0.0.0', () => {
