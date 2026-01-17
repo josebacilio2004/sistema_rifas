@@ -249,6 +249,7 @@ async function showPaymentModalMultiple(raffleIds) {
     startPaymentTimer();
 
     // Purchase all raffles
+    // Updated: 2026-01-17 12:35 - Fix user_id issue
     try {
         for (const raffleId of raffleIds) {
             await API.purchaseRaffle(raffleId);
