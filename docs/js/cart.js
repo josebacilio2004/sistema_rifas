@@ -251,7 +251,7 @@ async function showPaymentModalMultiple(raffleIds) {
     // Purchase all raffles
     try {
         for (const raffleId of raffleIds) {
-            await API.purchaseRaffle(raffleId, userId);
+            await API.purchaseRaffle(raffleId);
         }
 
         // Generate QR code for total amount

@@ -71,6 +71,13 @@ function closePaymentModal() {
 }
 
 /**
+ * Alias for closePaymentModal (for compatibility)
+ */
+function hidePaymentModal() {
+    closePaymentModal();
+}
+
+/**
  * Generate QR code for Yape payment
  */
 function generateQRCode(raffleId) {
