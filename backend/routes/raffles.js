@@ -378,4 +378,11 @@ router.delete('/:id/cancel', async (req, res, next) => {
     }
 });
 
+/**
+ * Helper to generate confirmation code
+ */
+function generateConfirmationCode() {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+}
+
 module.exports = router;
