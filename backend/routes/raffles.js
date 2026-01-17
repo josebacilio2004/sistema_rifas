@@ -251,11 +251,10 @@ router.post('/:id/purchase', async (req, res, next) => {
         res.json({
             message: 'Compra exitosa',
             raffle_id: result.raffle.id,
-            timestamp: new Date().toISOString()
-        });
-
-
-        // Send WhatsApp notifications (DUAL: Customer + Admin)
+            transaction_id: result.transaction.id,
+            confirmation_code: result.transaction.confirmation_code,
+            status: 'pending_payment'
+        });// Send WhatsApp notifications (DUAL: Customer + Admin)
         // Each notification is independent - if one fails, the other still sends
         if (whatsappService) {
             // 1. Intentar enviar al CLIENTE
