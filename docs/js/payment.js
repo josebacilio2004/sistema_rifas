@@ -83,18 +83,26 @@ function hidePaymentModal() {
 function generateQRCode(raffleId) {
     const qrCodeContainer = document.getElementById('qr-code');
 
-    // Yape URL format
-    const yapePhone = '51964910248';
-    const amount = '5.00';
-    const message = encodeURIComponent(`Rifa ${raffleId}`);
-    const yapeUrl = `https://yape.com.pe/pago/${yapePhone}?amount=${amount}&message=${message}`;
-
     // Clear previous QR
     qrCodeContainer.innerHTML = '';
 
-    // Generate QR using API service
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(yapeUrl)}`;
-    qrCodeContainer.innerHTML = `<img src="${qrApiUrl}" alt="QR Code Yape" style="max-width: 200px;">`;
+    // Use static Yape QR image for +51 964 910 248
+    const qrImagePath = 'assets/yapeQR/QR.jpeg';
+
+    qrCodeContainer.innerHTML = `
+        <div style="text-align: center;">
+            <img src="${qrImagePath}" alt="Yape QR" style="max-width: 250px; border-radius: 8px;">
+            <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--color-text-secondary);">
+                Escanea el código QR con Yape
+            </p>
+            <p style="font-weight: 600; color: var(--color-primary);">
+                Número: +51 964 910 248
+            </p>
+            <p style="font-size: 0.875rem; margin-top: 0.5rem;">
+                Monto: S/ 5.00
+            </p>
+        </div>
+    `;
 }
 
 /**
