@@ -198,10 +198,12 @@ async function handleCartCheckout() {
         for (const raffleId of cart) {
             try {
                 const response = await API.reserveRaffle(raffleId, userId);
-                reservations.push(raffleId);
+                reservations.push({
+                    raffleId: raffleId,
+                    confirmationCode: response.confirmation_code
+                });
             } catch (error) {
                 showToast(`Error reservando rifa N° ${raffleId}: ${error.message}`, 'error');
-                // Continue with other raffles
             }
         }
 
@@ -210,8 +212,20 @@ async function handleCartCheckout() {
             return;
         }
 
-        // Show payment modal with multiple raffles
-        showPaymentModalMultiple(reservations);
+        // Calculate total amount
+        const totalAmount = reservations.length * 5.00;
+
+        // Open payment modal with confirmation code and raffle IDs
+        if (typeof showPaymentModal === 'function') {
+            showPaymentModal(
+                reservations.map(r => r.raffleId),
+                reservations[0].confirmationCode,
+                totalAmount
+            );
+        } else {
+            showToast('Error abriendo modal de pago', 'error');
+            return;
+        }
 
         // Close cart panel
         cartPanel.classList.add('hidden');
