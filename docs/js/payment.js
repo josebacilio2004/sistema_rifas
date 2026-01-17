@@ -20,12 +20,26 @@ if (confirmPaymentBtn) {
 }
 
 /**
- * Open payment modal for a raffle
+ * Open payment modal for raffle(s)
  */
-function openPaymentModal(raffleId, confirmationCode) {
-    currentRaffleId = raffleId;
+function openPaymentModal(raffleIds, confirmationCode, totalAmount) {
+    // Support both single raffle and multiple raffles
+    const raffleIdsArray = Array.isArray(raffleIds) ? raffleIds : [raffleIds];
+    const amount = totalAmount || (raffleIdsArray.length * 5.00);
+
+    currentRaffleId = raffleIdsArray[0]; // Store first for backward compatibility
     currentConfirmationCode = confirmationCode;
-    modalRaffleNumber.textContent = raffleId;
+
+    // Update raffle numbers display
+    if (modalRaffleNumber) {
+        modalRaffleNumber.textContent = raffleIdsArray.join(', ');
+    }
+
+    // Update amount display
+    const amountValue = document.querySelector('.amount-value');
+    if (amountValue) {
+        amountValue.textContent = `S/ ${amount.toFixed(2)}`;
+    }
 
     // Reset UI
     if (codeValidationMessage) {
@@ -37,9 +51,9 @@ function openPaymentModal(raffleId, confirmationCode) {
     }
 
     // Generate QR code
-    generateQRCode(raffleId);
+    generateQRCode(raffleIdsArray[0]);
 
-    // Start  timer
+    // Start timer
     startPaymentTimer();
 
     // Start verification polling
@@ -48,6 +62,9 @@ function openPaymentModal(raffleId, confirmationCode) {
     // Show modal
     paymentModal.classList.remove('hidden');
 }
+
+// Alias for backward compatibility
+const showPaymentModal = openPaymentModal;
 
 /**
  * Close payment modal
