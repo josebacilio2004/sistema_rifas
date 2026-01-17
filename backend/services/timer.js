@@ -3,6 +3,36 @@ const axios = require('axios');
 
 const RESERVATION_TIMEOUT_MINUTES = 5;
 
+class TimerService {
+    constructor() {
+        this.RESERVATION_TIMEOUT_MINUTES = 5;
+    }
+
+    /**
+     * Clean up expired reservations
+     * Returns number of cleaned reservations
+     */
+    async cleanupExpiredReservations() {
+        try {
+            const result = await db.query(`
+                UPDATE raffles
+                SET status = 'available',
+                    reserved_at = NULL,
+                    reserved_by = NULL,
+                    reserved_until = NULL
+                WHERE status = 'reserved'
+                  AND reserved_at + INTERVAL '${this.RESERVATION_TIMEOUT_MINUTES} minutes' < NOW()
+                RETURNING id
+            `);
+
+            return result.rows.length;
+        } catch (error) {
+            console.error('Error cleaning expired reservations:', error);
+            throw error;
+        }
+    }
+}
+
 /**
  * Clean up expired reservations
  * Called by cron job every minute

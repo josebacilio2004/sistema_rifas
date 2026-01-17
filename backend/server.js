@@ -1,24 +1,4 @@
-﻿require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const cron = require('node-cron');
-const db = require('./services/database');
-const timerService = require('./services/timer');
-
-// Import routes
-const authRoutes = require('./routes/auth');
-const raffleRoutes = require('./routes/raffles');
-const webhookRoutes = require('./routes/webhooks');
-const adminRoutes = require('./routes/admin');
-const paymentRoutes = require('./routes/payments');
-const carouselRoutes = require('./routes/carousel');
-const yapeWebhookRoutes = require('./routes/yape-webhook');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Trust proxy - necesario para Render y rate limiting
-app.set('trust proxy', 1);
+﻿app.set('trust proxy', 1);
 
 // CORS configuration - allow multiple origins
 const allowedOrigins = [
