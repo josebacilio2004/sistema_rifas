@@ -236,57 +236,6 @@ async function handleCartCheckout() {
     }
 }
 
-/**
- * Show payment modal for multiple raffles
- */
-async function showPaymentModalMultiple(raffleIds) {
-    const userId = getCurrentUserId();
-    const totalAmount = raffleIds.length * RAFFLE_PRICE;
-
-    // Update modal content for multiple raffles
-    if (modalRaffleNumber) {
-        modalRaffleNumber.textContent = raffleIds.join(', ');
-    }
-
-    // Update amount display
-    const amountValue = document.querySelector('.amount-value');
-    if (amountValue) {
-        amountValue.textContent = `S/ ${totalAmount.toFixed(2)}`;
-    }
-
-    // Show modal
-    if (paymentModal) {
-        paymentModal.classList.remove('hidden');
-    }
-
-    // Start countdown timer
-    startPaymentTimer();
-
-    // Purchase all raffles
-    // Updated: 2026-01-17 12:35 - Fix user_id issue
-    try {
-        for (const raffleId of raffleIds) {
-            await API.purchaseRaffle(raffleId);
-        }
-
-        // Open payment modal with first raffle ID
-        // Payment modal will show the static Yape QR
-        if (typeof showPaymentModal === 'function') {
-            showPaymentModal(raffleIds[0]);
-        } else {
-            showToast('Compra realizada. Por favor realiza el pago con Yape.', 'success');
-        }
-
-        // Close cart panel
-        cartPanel.classList.add('hidden');
-        clearCart();
-
-    } catch (error) {
-        showToast(error.message, 'error');
-        hidePaymentModal();
-    }
-}
-
 // Initialize cart when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeCart);
