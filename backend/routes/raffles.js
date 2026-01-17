@@ -219,14 +219,13 @@ router.post('/:id/purchase', async (req, res, next) => {
             const updateResult = await client.query(
                 `UPDATE raffles 
                  SET status = 'sold',
-                     user_id = $1,
                      purchased_at = NOW(),
                      reserved_at = NULL,
                      reserved_by = NULL,
                      reserved_until = NULL
-                 WHERE id = $2
+                 WHERE id = $1
                  RETURNING id, status, purchased_at`,
-                [user_id, raffleValidation.id]
+                [raffleValidation.id]
             );
 
             if (updateResult.rows.length === 0) {
