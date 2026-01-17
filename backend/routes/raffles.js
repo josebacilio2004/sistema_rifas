@@ -179,57 +179,74 @@ router.post('/:id/purchase', async (req, res, next) => {
 
         // Use transaction
         const result = await db.transaction(async (client) => {
-            // Check if raffle is reserved by this user
-            const raffleCheck = await client.query(
-                `SELECT id, status, reserved_by, reserved_at 
+            // Get current raffle estado
+            const raffle = await client.query(
+                `SELECT id, status, reserved_by, reserved_at, user_id as buyer_id
                  FROM raffles 
-                 WHERE id = $1 FOR UPDATE`,
+                 WHERE id = $1`,
                 [raffleValidation.id]
             );
 
-            if (raffleCheck.rows.length === 0) {
+            if (raffle.rows.length === 0) {
                 throw new Error('Rifa no encontrada');
             }
 
-            const raffle = raffleCheck.rows[0];
+            const current = raffle.rows[0];
 
-            if (raffle.status !== 'reserved') {
-                throw new Error('Esta rifa no está reservada');
+            // Permitir purchase si:
+            // 1. Está available (compra directa)
+            // 2. Está reserved por este mismo user
+            // 3. Está reserved pero expiró (will overwrite)
+
+            if (current.status === 'sold') {
+                throw new Error('Esta rifa ya fue vendida');
             }
 
-            if (raffle.reserved_by !== user_id) {
-                throw new Error('Esta rifa está reservada por otro usuario');
+            // Si está reservada por OTRO usuario Y no ha expirado, rechazar
+            if (current.status === 'reserved' && current.reserved_by && current.reserved_by !== user_id) {
+                const reservedAt = new Date(current.reserved_at);
+                const now = new Date();
+                const minutesSinceReserved = (now - reservedAt) / 1000 / 60;
+
+                if (minutesSinceReserved < 5) {
+                    throw new Error('Esta rifa está reservada por otro usuario');
+                }
+                // Si pasaron más de 5 min, permitir purchase (override expired)
             }
 
-            // Check if reservation is still valid
-            const isValid = await timerService.isReservationValid(raffleValidation.id);
-            if (!isValid) {
-                throw new Error('La reserva ha expirado. Por favor, intenta nuevamente.');
-            }
-
-            // Get user info for QR code and WhatsApp
-            const userResult = await client.query(
-                'SELECT nombre, apellido, celular FROM users WHERE id = $1',
+            // Marcar como sold
+            const updateResult = await client.query(
+                `UPDATE raffles 
+                 SET status = 'sold',
+                     user_id = $1,
+                     purchased_at = NOW(),
+                     reserved_at = NULL,
+                     reserved_by = NULL,
+                     reserved_until = NULL
+                 WHERE id = $2
+                 RETURNING id, status, purchased_at`,
+                [user_id, raffleValidation.id]
+            ); 'SELECT nombre, apellido, celular FROM users WHERE id = $1',
                 [user_id]
             );
 
-            const user = userResult.rows[0];
+        const user = userResult.rows[0];
 
-            // Generate Yape QR code
-            const yapeData = `yape://${process.env.YAPE_PHONE}?amount=5.00&message=Rifa%20No.%20${raffleValidation.id}%20-%20${user.nombre}%20${user.apellido}`;
-            const qrCodeDataUrl = await QRCode.toDataURL(yapeData);
+        // Generate Yape QR code
+        const yapeData = `yape://${process.env.YAPE_PHONE}?amount=5.00&message=Rifa%20No.%20${raffleValidation.id}%20-%20${user.nombre}%20${user.apellido}`;
+        const qrCodeDataUrl = await QRCode.toDataURL(yapeData);
 
-            // Create transaction record
-            const transactionId = uuidv4();
-            await client.query(
-                `INSERT INTO transactions (id, user_id, raffle_id, amount, payment_method, status, qr_code_url)
+        // Create transaction record
+        const transactionId = uuidv4();
+        await client.query(
+            `INSERT INTO transactions (id, user_id, raffle_id, amount, payment_method, status, qr_code_url)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [transactionId, user_id, raffleValidation.id, 5.00, 'yape', 'pending', qrCodeDataUrl]
-            );
+            [transactionId, user_id, raffleValidation.id, 5.00, 'yape', 'pending', qrCodeDataUrl]
+        );
 
-            // Mark raffle as sold
-            const updateResult = await client.query(
-                `UPDATE raffles 
+        // Mark raffle as sold
+        const updateResult = await client.query(
+            `UPDATE raffles 
                  SET status = 'sold', 
                      purchased_by = $1, 
                      purchased_at = NOW(),
@@ -237,99 +254,99 @@ router.post('/:id/purchase', async (req, res, next) => {
                      reserved_at = NULL
                  WHERE id = $2 
                  RETURNING id, status, purchased_at`,
-                [user_id, raffleValidation.id]
-            );
+            [user_id, raffleValidation.id]
+        );
 
-            return {
-                raffle: updateResult.rows[0],
-                transaction: {
-                    id: transactionId,
-                    qr_code_url: qrCodeDataUrl
-                },
-                user
-            };
-        });
-
-        // Send webhook notification
-        await timerService.sendWebhookNotification({
-            event: 'raffle_purchased',
-            raffle_id: result.raffle.id,
-            user_id: user_id,
-            user_name: `${result.user.nombre} ${result.user.apellido}`,
-            user_phone: result.user.celular,
-            amount: 5.00,
-            timestamp: new Date().toISOString()
-        });
-
-
-        // Send WhatsApp notifications (DUAL: Customer + Admin)
-        // Each notification is independent - if one fails, the other still sends
-        if (whatsappService) {
-            // 1. Intentar enviar al CLIENTE
-            try {
-                try {
-                    await whatsappService.sendPurchaseTemplate(
-                        result.user,
-                        [result.raffle.id],
-                        5.00
-                    );
-                    console.log('✅ WhatsApp customer TEMPLATE sent to:', result.user.celular);
-                } catch (templateError) {
-                    console.log('⚠️  Template no disponible, usando texto libre');
-                    await whatsappService.sendPurchaseNotification(
-                        result.user,
-                        [result.raffle.id],
-                        5.00
-                    );
-                    console.log('✅ WhatsApp customer TEXT sent to:', result.user.celular);
-                }
-            } catch (customerError) {
-                console.error('❌ Failed to send customer notification:', customerError.message);
-                // Don't stop - still try to send admin notification
-            }
-
-            // 2. Intentar enviar al ADMIN (independiente del resultado anterior)
-            try {
-                try {
-                    await whatsappService.sendAdminTemplate(
-                        result.user,
-                        [result.raffle.id],
-                        5.00
-                    );
-                    console.log('✅ WhatsApp admin TEMPLATE sent');
-                } catch (templateError) {
-                    await whatsappService.sendAdminPurchaseNotification(
-                        result.user,
-                        [result.raffle.id],
-                        5.00
-                    );
-                    console.log('✅ WhatsApp admin TEXT sent');
-                }
-            } catch (adminError) {
-                console.error('❌ Failed to send admin notification:', adminError.message);
-                // Don't fail the purchase if admin notification fails
-            }
-        }
-
-        res.json({
-            message: 'Compra iniciada. Escanea el código QR de Yape para completar el pago.',
-            raffle: result.raffle,
-            payment: {
-                method: 'yape',
-                amount: 5.00,
-                qr_code: result.transaction.qr_code_url,
-                instructions: `Escanea el código QR con tu app de Yape y paga S/ 5.00. En el concepto debe aparecer: Rifa No. ${result.raffle.id}`
+        return {
+            raffle: updateResult.rows[0],
+            transaction: {
+                id: transactionId,
+                qr_code_url: qrCodeDataUrl
             },
-            transaction_id: result.transaction.id
-        });
-    } catch (error) {
-        if (error.message.includes('no está reservada') ||
-            error.message.includes('reservada por otro') ||
-            error.message.includes('expirado')) {
-            return res.status(409).json({ error: error.message });
+            user
+        };
+    });
+
+// Send webhook notification
+await timerService.sendWebhookNotification({
+    event: 'raffle_purchased',
+    raffle_id: result.raffle.id,
+    user_id: user_id,
+    user_name: `${result.user.nombre} ${result.user.apellido}`,
+    user_phone: result.user.celular,
+    amount: 5.00,
+    timestamp: new Date().toISOString()
+});
+
+
+// Send WhatsApp notifications (DUAL: Customer + Admin)
+// Each notification is independent - if one fails, the other still sends
+if (whatsappService) {
+    // 1. Intentar enviar al CLIENTE
+    try {
+        try {
+            await whatsappService.sendPurchaseTemplate(
+                result.user,
+                [result.raffle.id],
+                5.00
+            );
+            console.log('✅ WhatsApp customer TEMPLATE sent to:', result.user.celular);
+        } catch (templateError) {
+            console.log('⚠️  Template no disponible, usando texto libre');
+            await whatsappService.sendPurchaseNotification(
+                result.user,
+                [result.raffle.id],
+                5.00
+            );
+            console.log('✅ WhatsApp customer TEXT sent to:', result.user.celular);
         }
-        next(error);
+    } catch (customerError) {
+        console.error('❌ Failed to send customer notification:', customerError.message);
+        // Don't stop - still try to send admin notification
     }
+
+    // 2. Intentar enviar al ADMIN (independiente del resultado anterior)
+    try {
+        try {
+            await whatsappService.sendAdminTemplate(
+                result.user,
+                [result.raffle.id],
+                5.00
+            );
+            console.log('✅ WhatsApp admin TEMPLATE sent');
+        } catch (templateError) {
+            await whatsappService.sendAdminPurchaseNotification(
+                result.user,
+                [result.raffle.id],
+                5.00
+            );
+            console.log('✅ WhatsApp admin TEXT sent');
+        }
+    } catch (adminError) {
+        console.error('❌ Failed to send admin notification:', adminError.message);
+        // Don't fail the purchase if admin notification fails
+    }
+}
+
+res.json({
+    message: 'Compra iniciada. Escanea el código QR de Yape para completar el pago.',
+    raffle: result.raffle,
+    payment: {
+        method: 'yape',
+        amount: 5.00,
+        qr_code: result.transaction.qr_code_url,
+        instructions: `Escanea el código QR con tu app de Yape y paga S/ 5.00. En el concepto debe aparecer: Rifa No. ${result.raffle.id}`
+    },
+    transaction_id: result.transaction.id
+});
+    } catch (error) {
+    if (error.message.includes('no está reservada') ||
+        error.message.includes('reservada por otro') ||
+        error.message.includes('expirado')) {
+        return res.status(409).json({ error: error.message });
+    }
+    next(error);
+}
 });
 
 /**
