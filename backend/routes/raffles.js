@@ -453,4 +453,158 @@ function isValidUUID(str) {
     return uuidRegex.test(str);
 }
 
+/**
+ * POST /api/cart/purchase
+ * Purchase multiple raffles in a single transaction
+ */
+router.post('/cart/purchase', async (req, res, next) => {
+    try {
+        const { raffle_ids, user_id, yape_operation_code, yape_sender_name } = req.body;
+
+        // Validate input
+        if (!Array.isArray(raffle_ids) || raffle_ids.length === 0) {
+            return res.status(400).json({ error: 'Se requiere al menos una rifa' });
+        }
+
+        if (!yape_operation_code || !yape_sender_name) {
+            return res.status(400).json({ error: 'Código Yape y nombre del yapero son requeridos' });
+        }
+
+        const totalAmount = raffle_ids.length * 5.00;
+
+        const result = await db.transaction(async (client) => {
+            // Validate all raffles are available/reserved
+            for (const raffleId of raffle_ids) {
+                const raffle = await client.query(
+                    'SELECT id, status, reserved_by, reserved_at FROM raffles WHERE id = $1',
+                    [raffleId]
+                );
+
+                if (raffle.rows.length === 0) {
+                    throw new Error(`Rifa ${raffleId} no encontrada`);
+                }
+
+                const current = raffle.rows[0];
+
+                if (current.status === 'sold') {
+                    throw new Error(`Rifa ${raffleId} ya fue vendida`);
+                }
+
+                // Check reservation blocking (same logic as single purchase)
+                if (current.status === 'reserved' && current.reserved_by) {
+                    const reservedAt = new Date(current.reserved_at);
+                    const now = new Date();
+                    const secondsSinceReserved = (now - reservedAt) / 1000;
+
+                    const isSameUser = isValidUUID(user_id) && isValidUUID(current.reserved_by) && current.reserved_by === user_id;
+
+                    if (!isSameUser && secondsSinceReserved < 60) {
+                        throw new Error(`Rifa ${raffleId} acaba de ser reservada. Intenta en 1 minuto.`);
+                    }
+                }
+            }
+
+            // Create single transaction with total amount
+            const transaction = await client.query(
+                `INSERT INTO transactions (
+                    user_id, amount, payment_method, status,
+                    confirmation_code, yape_operation_code, yape_sender_name,
+                    verified_by_webhook, created_at
+                 )
+                 VALUES ($1, $2, 'yape', 'pending_verification', $3, $4, $5, false, NOW())
+                 RETURNING id, confirmation_code`,
+                [
+                    isValidUUID(user_id) ? user_id : null,
+                    totalAmount,
+                    generateConfirmationCode(),
+                    yape_operation_code,
+                    yape_sender_name
+                ]
+            );
+
+            const transactionId = transaction.rows[0].id;
+
+            // Link all raffles to this transaction
+            for (const raffleId of raffle_ids) {
+                await client.query(
+                    'INSERT INTO transaction_raffles (transaction_id, raffle_id) VALUES ($1, $2)',
+                    [transactionId, raffleId]
+                );
+
+                // Mark raffle as reserved
+                await client.query(
+                    `UPDATE raffles 
+                     SET status = 'reserved', 
+                         reserved_by = $1,
+                         reserved_at = NOW()
+                     WHERE id = $2`,
+                    [user_id, raffleId]
+                );
+            }
+
+            return {
+                transaction: transaction.rows[0],
+                raffle_ids: raffle_ids,
+                total_amount: totalAmount
+            };
+        });
+
+        // Send WhatsApp notification to admin
+        try {
+            const whatsappService = require('../services/whatsappService');
+            const raffleNumbers = raffle_ids.join(', ');
+
+            let userData = {
+                nombre: yape_sender_name || 'Guest',
+                dni: 'No proporcionado',
+                celular: null
+            };
+
+            if (isValidUUID(user_id)) {
+                const userResult = await db.query(
+                    'SELECT nombre, apellido, dni, celular FROM users WHERE id = $1',
+                    [user_id]
+                );
+                if (userResult.rows.length > 0) {
+                    const user = userResult.rows[0];
+                    userData = {
+                        nombre: `${user.nombre} ${user.apellido}`,
+                        dni: user.dni,
+                        celular: user.celular
+                    };
+                }
+            }
+
+            await whatsappService.notifyAdminNewPayment({
+                customerName: userData.nombre,
+                customerDNI: userData.dni,
+                customerPhone: userData.celular,
+                raffleId: raffleNumbers,
+                amount: totalAmount,
+                yapeCode: yape_operation_code,
+                yapeSender: yape_sender_name
+            });
+
+            console.log('✅ Admin notified via WhatsApp');
+        } catch (whatsappError) {
+            console.error('⚠️ WhatsApp notification failed:', whatsappError.message);
+            // Don't fail the purchase if WhatsApp fails
+        }
+
+        res.json({
+            success: true,
+            message: `${raffle_ids.length} compra(s) registrada(s). Serán verificadas por un administrador.`,
+            transaction_id: result.transaction.id,
+            confirmation_code: result.transaction.confirmation_code,
+            raffle_count: raffle_ids.length,
+            raffle_ids: raffle_ids,
+            total_amount: result.total_amount,
+            status: 'pending_verification'
+        });
+
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;
