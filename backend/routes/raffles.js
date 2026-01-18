@@ -271,7 +271,8 @@ router.post('/:id/purchase', async (req, res, next) => {
         });
 
         // Send WhatsApp notification to ADMIN
-        if (whatsappService) {
+        // Only if user_id is a valid UUID (not a guest)
+        if (whatsappService && isValidUUID(user_id)) {
             try {
                 const userResult = await db.query(
                     'SELECT nombre, apellido, dni, celular FROM users WHERE id = $1',
@@ -296,6 +297,8 @@ router.post('/:id/purchase', async (req, res, next) => {
             } catch (whatsappError) {
                 console.error('❌ Admin WhatsApp failed:', whatsappError.message);
             }
+        } else if (!isValidUUID(user_id)) {
+            console.log('⚠️ Skipping WhatsApp - guest user (no valid UUID)');
         }
 
         // Send success response
@@ -435,6 +438,15 @@ router.delete('/:id/cancel', async (req, res, next) => {
  */
 function generateConfirmationCode() {
     return Math.random().toString(36).substring(2, 10).toUpperCase();
+}
+
+/**
+ * Helper to validate if a string is a valid UUID
+ */
+function isValidUUID(str) {
+    if (!str || typeof str !== 'string') return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
 }
 
 module.exports = router;
