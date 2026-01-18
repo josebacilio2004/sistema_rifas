@@ -240,6 +240,7 @@ router.post('/:id/purchase', async (req, res, next) => {
             // La rifa se marcará como sold cuando admin apruebe la verificación
 
             // Create transaction record with Yape data - PENDING VERIFICATION
+            // Use NULL for guest users to avoid UUID type error
             const transactionResult = await client.query(
                 `INSERT INTO transactions (
                     raffle_id, 
@@ -257,7 +258,7 @@ router.post('/:id/purchase', async (req, res, next) => {
                  RETURNING id, confirmation_code`,
                 [
                     raffleValidation.id,
-                    user_id,
+                    isValidUUID(user_id) ? user_id : null,  // Use NULL for guest users
                     generateConfirmationCode(),
                     yape_operation_code,
                     yape_sender_name
