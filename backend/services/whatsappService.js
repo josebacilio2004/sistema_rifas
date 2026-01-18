@@ -1,26 +1,69 @@
 const axios = require('axios');
 
+/**
+ * WhatsApp Business API Service
+ * Envía notificaciones usando templates aprobados
+ */
 class WhatsAppService {
     constructor() {
-        this.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
         this.accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-        this.apiVersion = process.env.WHATSAPP_API_VERSION || 'v18.0';
-        this.baseUrl = `https://graph.facebook.com/${this.apiVersion}/${this.phoneNumberId}`;
+        this.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+        this.adminPhone = process.env.WHATSAPP_ADMIN_NUMBER;  // Usar variable existente
+        this.apiVersion = 'v18.0';
+        this.baseUrl = `https://graph.facebook.com/${this.apiVersion}`;
+
+        if (!this.accessToken || !this.phoneNumberId) {
+            console.warn('⚠️ WhatsApp credentials not configured');
+        }
     }
 
     /**
-     * Enviar mensaje de texto a WhatsApp
+     * Enviar notificación de pago pendiente al admin
+     * Usa template "admin"
      */
-    async sendTextMessage(to, message) {
+    async notifyAdminNewPayment({
+        customerName,
+        customerDNI,
+        customerPhone,
+        raffleId,
+        amount,
+        yapeCode,
+        yapeSender
+    }) {
+        if (!this.accessToken || !this.phoneNumberId) {
+            console.log('⚠️ WhatsApp not configured, skipping notification');
+            return null;
+        }
+
         try {
+            const adminPhone = this.adminPhone.replace(/[^0-9]/g, ''); // Remove + and spaces
+
+            // Template "admin" params: nombre, DNI, Tel, Rifa, Monto
+            const payload = {
+                messaging_product: 'whatsapp',
+                to: adminPhone,
+                type: 'template',
+                template: {
+                    name: 'admin',
+                    language: { code: 'es' },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: customerName || 'Guest' },
+                                { type: 'text', text: customerDNI || 'No proporcionado' },
+                                { type: 'text', text: customerPhone || 'No proporcionado' },
+                                { type: 'text', text: `#${raffleId}` },
+                                { type: 'text', text: amount.toString() }
+                            ]
+                        }
+                    ]
+                }
+            };
+
             const response = await axios.post(
-                `${this.baseUrl}/messages`,
-                {
-                    messaging_product: 'whatsapp',
-                    to: to,
-                    type: 'text',
-                    text: { body: message }
-                },
+                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                payload,
                 {
                     headers: {
                         'Authorization': `Bearer ${this.accessToken}`,
@@ -29,148 +72,39 @@ class WhatsAppService {
                 }
             );
 
-            console.log('WhatsApp message sent:', response.data);
+            console.log('✅ WhatsApp admin notification sent:', response.data);
+
+            // Enviar mensaje adicional con datos Yape (mensaje libre en ventana de 24h)
+            await this.sendYapeDetails(adminPhone, { yapeCode, yapeSender, raffleId });
+
             return response.data;
         } catch (error) {
-            console.error('Error sending WhatsApp message:', error.response?.data || error.message);
-            throw error;
+            console.error('❌ WhatsApp notification failed:', error.response?.data || error.message);
+            // No lanzar error para no bloquear el pago
+            return null;
         }
     }
 
     /**
-     * Enviar notificación de compra de rifa
+     * Enviar detalles de Yape como mensaje de seguimiento
      */
-    async sendPurchaseNotification(user, raffleNumbers, totalAmount) {
-        const phoneNumber = this.formatPhoneNumber(user.celular);
-
-        const message = `
-🎉 *¡Compra Confirmada!*
-
-Hola ${user.nombre} ${user.apellido},
-
-Tu compra ha sido procesada exitosamente:
-
-🎫 *Número(s) de Rifa:* ${raffleNumbers.join(', ')}
-💰 *Total Pagado:* S/ ${totalAmount.toFixed(2)}
-📝 *DNI:* ${user.dni}
-
-¡Mucha suerte! 🍀
-
-_Sistema de Rifas_
-        `.trim();
-
-        return await this.sendTextMessage(phoneNumber, message);
-    }
-
-    /**
-     * Enviar notificación de reserva
-     */
-    async sendReservationNotification(user, raffleNumber) {
-        const phoneNumber = this.formatPhoneNumber(user.celular);
-
-        const message = `
-⏰ *Rifa Reservada*
-
-Hola ${user.nombre},
-
-Has reservado la rifa N° *${raffleNumber}*
-
-⚠️ Tienes *5 minutos* para completar el pago.
-
-¡No pierdas tu oportunidad!
-
-_Sistema de Rifas_
-        `.trim();
-
-        return await this.sendTextMessage(phoneNumber, message);
-    }
-
-    /**
-     * Enviar notificación de expiración de reserva
-     */
-    async sendReservationExpiredNotification(user, raffleNumber) {
-        const phoneNumber = this.formatPhoneNumber(user.celular);
-
-        const message = `
-❌ *Reserva Expirada*
-
-Hola ${user.nombre},
-
-Tu reserva de la rifa N° *${raffleNumber}* ha expirado.
-
-Puedes intentar reservarla nuevamente si aún está disponible.
-
-_Sistema de Rifas_
-        `.trim();
-
-        return await this.sendTextMessage(phoneNumber, message);
-    }
-
-    /**
-     * Enviar notificación al administrador sobre una compra
-     * Esta notificación se envía al número configurado en WHATSAPP_ADMIN_NUMBER
-     */
-    async sendAdminPurchaseNotification(user, raffleNumbers, totalAmount) {
-        const adminNumber = process.env.WHATSAPP_ADMIN_NUMBER;
-
-        if (!adminNumber) {
-            console.log('⚠️  WHATSAPP_ADMIN_NUMBER no configurado - notificación de admin omitida');
-            return;
-        }
-
-        const raffleList = Array.isArray(raffleNumbers) ? raffleNumbers.join(', ') : raffleNumbers;
-
-        const message = `
-🎉 *Nueva Compra Registrada*
-
-📋 *Detalles de la venta:*
-
-👤 *Cliente:* ${user.nombre} ${user.apellido}
-📝 *DNI:* ${user.dni}
-📱 *Teléfono:* ${user.celular}
-
-🎫 *Rifa(s):* ${raffleList}
-💰 *Monto:* S/ ${totalAmount.toFixed(2)}
-
-⏰ ${new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' })}
-
-_Sistema de Rifas - Notificación Automática_
-        `.trim();
-
-        return await this.sendTextMessage(adminNumber, message);
-    }
-
-    /**
-     * Enviar notificación de compra usando MESSAGE TEMPLATE (aprobado por Meta)
-     * Este método NO tiene restricción de 24 horas
-     */
-    async sendPurchaseTemplate(user, raffleNumbers, totalAmount) {
-        const phoneNumber = this.formatPhoneNumber(user.celular);
-        const raffleList = Array.isArray(raffleNumbers) ? raffleNumbers.join(', ') : raffleNumbers;
-
+    async sendYapeDetails(adminPhone, { yapeCode, yapeSender, raffleId }) {
         try {
-            const response = await axios.post(
-                `${this.baseUrl}/messages`,
-                {
-                    messaging_product: 'whatsapp',
-                    to: phoneNumber,
-                    type: 'template',
-                    template: {
-                        name: 'cliente',  // Nombre del template aprobado
-                        language: { code: 'es' },
-                        components: [
-                            {
-                                type: 'body',
-                                parameters: [
-                                    { type: 'text', text: user.nombre },  // {{1}}
-                                    { type: 'text', text: raffleList },   // {{2}}
-                                    { type: 'text', text: totalAmount.toFixed(2) }, // {{3}}
-                                    { type: 'text', text: user.dni }      // {{4}}
-                                ]
-                            }
-                        ]
-                    }
-                },
+            const message = `📱 *Datos Yape - Rifa #${raffleId}*\n\n` +
+                `Código: ${yapeCode}\n` +
+                `Yapero: ${yapeSender}\n\n` +
+                `🔗 Panel Admin: https://josebacilio2004.github.io/sistema_rifas/admin.html`;
+
+            const payload = {
+                messaging_product: 'whatsapp',
+                to: adminPhone,
+                type: 'text',
+                text: { body: message }
+            };
+
+            await axios.post(
+                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                payload,
                 {
                     headers: {
                         'Authorization': `Bearer ${this.accessToken}`,
@@ -179,52 +113,56 @@ _Sistema de Rifas - Notificación Automática_
                 }
             );
 
-            console.log('WhatsApp template message sent:', response.data);
-            return response.data;
+            console.log('✅ Yape details sent');
         } catch (error) {
-            console.error('Error sending WhatsApp template:', error.response?.data || error.message);
-            throw error;
+            console.error('⚠️ Could not send Yape details:', error.response?.data?.error?.message || error.message);
         }
     }
 
     /**
-     * Enviar notificación al admin usando MESSAGE TEMPLATE (aprobado por Meta)
+     * Enviar confirmación de compra al cliente
+     * Usa template "cliente"
      */
-    async sendAdminTemplate(user, raffleNumbers, totalAmount) {
-        const adminNumber = process.env.WHATSAPP_ADMIN_NUMBER;
-
-        if (!adminNumber) {
-            console.log('⚠️  WHATSAPP_ADMIN_NUMBER no configurado');
-            return;
+    async notifyCustomerPurchaseApproved({
+        customerPhone,
+        customerName,
+        raffleId,
+        amount,
+        customerDNI
+    }) {
+        if (!this.accessToken || !this.phoneNumberId || !customerPhone) {
+            console.log('⚠️ WhatsApp not configured or no customer phone, skipping notification');
+            return null;
         }
 
-        const raffleList = Array.isArray(raffleNumbers) ? raffleNumbers.join(', ') : raffleNumbers;
-        const formattedAdmin = this.formatPhoneNumber(adminNumber);
-
         try {
+            const phone = customerPhone.replace(/[^0-9]/g, '');
+
+            // Template "cliente" params: nombre, Rifa, Total, DNI
+            const payload = {
+                messaging_product: 'whatsapp',
+                to: phone,
+                type: 'template',
+                template: {
+                    name: 'cliente',
+                    language: { code: 'es' },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: customerName },
+                                { type: 'text', text: `#${raffleId}` },
+                                { type: 'text', text: amount.toString() },
+                                { type: 'text', text: customerDNI }
+                            ]
+                        }
+                    ]
+                }
+            };
+
             const response = await axios.post(
-                `${this.baseUrl}/messages`,
-                {
-                    messaging_product: 'whatsapp',
-                    to: formattedAdmin,
-                    type: 'template',
-                    template: {
-                        name: 'admin',  // Nombre del template aprobado
-                        language: { code: 'es' },
-                        components: [
-                            {
-                                type: 'body',
-                                parameters: [
-                                    { type: 'text', text: `${user.nombre} ${user.apellido}` }, // {{1}}
-                                    { type: 'text', text: user.dni },        // {{2}}
-                                    { type: 'text', text: user.celular },    // {{3}}
-                                    { type: 'text', text: raffleList },      // {{4}}
-                                    { type: 'text', text: totalAmount.toFixed(2) } // {{5}}
-                                ]
-                            }
-                        ]
-                    }
-                },
+                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                payload,
                 {
                     headers: {
                         'Authorization': `Bearer ${this.accessToken}`,
@@ -233,49 +171,31 @@ _Sistema de Rifas - Notificación Automática_
                 }
             );
 
-            console.log('WhatsApp admin template sent:', response.data);
+            console.log('✅ WhatsApp customer confirmation sent:', response.data);
             return response.data;
         } catch (error) {
-            console.error('Error sending admin template:', error.response?.data || error.message);
-            throw error;
+            console.error('❌ WhatsApp customer notification failed:', error.response?.data || error.message);
+            return null;
         }
     }
 
     /**
-     * Formatear número de teléfono para WhatsApp
+     * Enviar mensaje de prueba
      */
-    formatPhoneNumber(phone) {
-        // Remover todos los caracteres no numéricos excepto el +
-        let cleaned = phone.replace(/[^\d+]/g, '');
-
-        // Asegurar que empiece con +51 (Perú)
-        if (!cleaned.startsWith('+')) {
-            cleaned = '+' + cleaned;
-        }
-        if (!cleaned.startsWith('+51')) {
-            cleaned = '+51' + cleaned.replace(/^\+?51?/, '');
-        }
-
-        return cleaned;
-    }
-
-    /**
-     * Enviar mensaje con template (para mensajes pre-aprobados)
-     */
-    async sendTemplateMessage(to, templateName, languageCode = 'es', components = []) {
+    async sendTestMessage(phone) {
         try {
+            const cleanPhone = phone.replace(/[^0-9]/g, '');
+
+            const payload = {
+                messaging_product: 'whatsapp',
+                to: cleanPhone,
+                type: 'text',
+                text: { body: '✅ WhatsApp configurado correctamente! Sistema de Rifas.' }
+            };
+
             const response = await axios.post(
-                `${this.baseUrl}/messages`,
-                {
-                    messaging_product: 'whatsapp',
-                    to: to,
-                    type: 'template',
-                    template: {
-                        name: templateName,
-                        language: { code: languageCode },
-                        components: components
-                    }
-                },
+                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                payload,
                 {
                     headers: {
                         'Authorization': `Bearer ${this.accessToken}`,
@@ -286,8 +206,7 @@ _Sistema de Rifas - Notificación Automática_
 
             return response.data;
         } catch (error) {
-            console.error('Error sending template message:', error.response?.data || error.message);
-            throw error;
+            throw new Error(error.response?.data?.error?.message || error.message);
         }
     }
 }
