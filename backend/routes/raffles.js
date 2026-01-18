@@ -461,6 +461,8 @@ router.post('/cart/purchase', async (req, res, next) => {
     try {
         const { raffle_ids, user_id, yape_operation_code, yape_sender_name } = req.body;
 
+        console.log('📥 Cart purchase request:', { raffle_ids, user_id, yape_operation_code, yape_sender_name });
+
         // Validate input
         if (!Array.isArray(raffle_ids) || raffle_ids.length === 0) {
             return res.status(400).json({ error: 'Se requiere al menos una rifa' });
@@ -470,11 +472,22 @@ router.post('/cart/purchase', async (req, res, next) => {
             return res.status(400).json({ error: 'Código Yape y nombre del yapero son requeridos' });
         }
 
-        const totalAmount = raffle_ids.length * 5.00;
+        // Convert raffle IDs to integers (in case they come as strings)
+        const raffleIdsInt = raffle_ids.map(id => {
+            const num = parseInt(id);
+            if (isNaN(num)) {
+                throw new Error(`ID de rifa inválido: ${id}`);
+            }
+            return num;
+        });
+
+        console.log('✅ Raffle IDs converted to integers:', raffleIdsInt);
+
+        const totalAmount = raffleIdsInt.length * 5.00;
 
         const result = await db.transaction(async (client) => {
             // Validate all raffles are available/reserved
-            for (const raffleId of raffle_ids) {
+            for (const raffleId of raffleIdsInt) {
                 const raffle = await client.query(
                     'SELECT id, status, reserved_by, reserved_at FROM raffles WHERE id = $1',
                     [raffleId]
@@ -525,7 +538,7 @@ router.post('/cart/purchase', async (req, res, next) => {
             const transactionId = transaction.rows[0].id;
 
             // Link all raffles to this transaction
-            for (const raffleId of raffle_ids) {
+            for (const raffleId of raffleIdsInt) {
                 await client.query(
                     'INSERT INTO transaction_raffles (transaction_id, raffle_id) VALUES ($1, $2)',
                     [transactionId, raffleId]
@@ -544,7 +557,7 @@ router.post('/cart/purchase', async (req, res, next) => {
 
             return {
                 transaction: transaction.rows[0],
-                raffle_ids: raffle_ids,
+                raffle_ids: raffleIdsInt,
                 total_amount: totalAmount
             };
         });
@@ -552,7 +565,7 @@ router.post('/cart/purchase', async (req, res, next) => {
         // Send WhatsApp notification to admin
         try {
             const whatsappService = require('../services/whatsappService');
-            const raffleNumbers = raffle_ids.join(', ');
+            const raffleNumbers = raffleIdsInt.join(', ');
 
             let userData = {
                 nombre: yape_sender_name || 'Guest',
