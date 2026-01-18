@@ -229,9 +229,11 @@ function showValidationMessage(message, type) {
 }
 
 /**
- * Confirm payment (complete the purchase) - MANUAL VERIFICATION
+ * Confirm payment (complete the purchase) - USES WORKING ENDPOINT
  */
 async function confirmPayment() {
+    console.log('Confirming payment...');
+
     // Get Yape verification fields
     const yapeCodeInput = document.getElementById('yape-code');
     const yapeSenderInput = document.getElementById('yape-sender');
@@ -274,55 +276,87 @@ async function confirmPayment() {
         // Handle both single raffle and multiple raffles from cart
         const raffleIds = Array.isArray(currentRaffleId) ? currentRaffleId : [currentRaffleId];
 
-        console.log(`🔵 Processing ${raffleIds.length} raffle(s) as SINGLE transaction:`, raffleIds);
+        console.log(`Processing ${raffleIds.length} raffle(s):`, raffleIds);
 
-        // Call cart/purchase endpoint (SINGLE transaction for ALL raffles)
-        const response = await fetch(`${CONFIG.API_URL}/raffles/cart/purchase`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                raffle_ids: raffleIds,
-                user_id: localStorage.getItem('user_id'),
-                yape_operation_code: yapeCode,
-                yape_sender_name: yapeSender
-            })
-        });
+        const userId = localStorage.getItem('user_id');
+        let successCount = 0;
+        const errors = [];
 
-        console.log('Response status:', response.status);
+        // Process each raffle individually (using WORKING endpoint)
+        for (const raffleId of raffleIds) {
+            try {
+                console.log(`Processing raffle ${raffleId}...`);
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Error response:', errorData);
-            throw new Error(errorData.error || 'Error al procesar el pago');
+                const response = await fetch(`${CONFIG.API_URL}/raffles/${raffleId}/purchase`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        yape_operation_code: yapeCode,
+                        yape_sender_name: yapeSender
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al procesar');
+                }
+
+                const data = await response.json();
+                console.log(`✅ Raffle ${raffleId} OK`);
+                successCount++;
+
+            } catch (error) {
+                console.error(`❌ Error raffle ${raffleId}:`, error);
+                errors.push({ raffleId, error: error.message });
+            }
         }
-
-        const data = await response.json();
-        console.log('Success data:', data);
 
         // Clear timers
         clearInterval(paymentTimer);
 
-        // Show success message
-        const totalAmount = raffleIds.length * 5.00;
-        const message = `¡${raffleIds.length} rifa(s) registrada(s) por S/ ${totalAmount.toFixed(2)}! Será verificada por un administrador`;
-        showToast(message, 'success');
+        // Show results
+        if (successCount > 0) {
+            const totalAmount = successCount * 5.00;
+            const message = successCount === raffleIds.length
+                ? `¡${successCount} rifa(s) registrada(s) por S/ ${totalAmount.toFixed(2)}! Serán verificadas por un administrador`
+                : `${successCount} de ${raffleIds.length} rifa(s) registrada(s)`;
 
-        // Clear cart after successful purchase
-        if (typeof clearCart === 'function') {
-            clearCart();
+            showToast(message, successCount === raffleIds.length ? 'success' : 'warning');
+
+            // Clear cart
+            if (typeof clearCart === 'function') {
+                clearCart();
+            }
+
+            // Close modal and reload
+            closePaymentModal();
+            loadRaffles();
         }
 
-        // Close modal and reload
-        closePaymentModal();
-        loadRaffles();
+        // Show errors if any
+        if (errors.length > 0) {
+            const errorMsg = errors.map(e => `Rifa ${e.raffleId}: ${e.error}`).join(', ');
+            showToast(`Errores: ${errorMsg}`, 'error');
+        }
+
+        // Re-enable button if all failed
+        if (successCount === 0 && confirmPaymentBtn) {
+            confirmPaymentBtn.disabled = false;
+            confirmPaymentBtn.innerHTML = '<span>He completado el pago</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 5.5L7.5 14.5L3.5 10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+        }
 
     } catch (error) {
         console.error('Error confirming payment:', error);
         showToast(error.message || 'Error al confirmar el pago', 'error');
-        confirmPaymentBtn.disabled = false;
-        confirmPaymentBtn.innerHTML = '<span>He completado el pago</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 5.5L7.5 14.5L3.5 10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+
+        // Re-enable button
+        if (confirmPaymentBtn) {
+            confirmPaymentBtn.disabled = false;
+            confirmPaymentBtn.innerHTML = '<span>He completado el pago</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 5.5L7.5 14.5L3.5 10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+        }
     }
 }
 
