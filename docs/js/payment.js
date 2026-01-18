@@ -274,9 +274,9 @@ async function confirmPayment() {
         // Handle both single raffle and multiple raffles from cart
         const raffleIds = Array.isArray(currentRaffleId) ? currentRaffleId : [currentRaffleId];
 
-        console.log(`Processing payment for ${raffleIds.length} raffle(s):`, raffleIds);
+        console.log(`🔵 Processing ${raffleIds.length} raffle(s) as SINGLE transaction:`, raffleIds);
 
-        // Call new cart/purchase endpoint (single transaction for multiple raffles)
+        // Call cart/purchase endpoint (SINGLE transaction for ALL raffles)
         const response = await fetch(`${CONFIG.API_URL}/raffles/cart/purchase`, {
             method: 'POST',
             headers: {
@@ -290,18 +290,23 @@ async function confirmPayment() {
             })
         });
 
+        console.log('Response status:', response.status);
+
         if (!response.ok) {
             const errorData = await response.json();
+            console.error('Error response:', errorData);
             throw new Error(errorData.error || 'Error al procesar el pago');
         }
 
         const data = await response.json();
+        console.log('Success data:', data);
 
         // Clear timers
         clearInterval(paymentTimer);
 
         // Show success message
-        const message = `¡${data.raffle_count} rifa(s) registrada(s) por S/ ${data.total_amount.toFixed(2)}! Será verificada por un administrador`;
+        const totalAmount = raffleIds.length * 5.00;
+        const message = `¡${raffleIds.length} rifa(s) registrada(s) por S/ ${totalAmount.toFixed(2)}! Será verificada por un administrador`;
         showToast(message, 'success');
 
         // Clear cart after successful purchase
@@ -312,9 +317,6 @@ async function confirmPayment() {
         // Close modal and reload
         closePaymentModal();
         loadRaffles();
-    } catch (error) {
-        console.error('Error confirming payment:', error);
-        showToast(error.message || 'Error al confirmar el pago', 'error');
 
         // Re-enable button
         if (confirmPaymentBtn) {
