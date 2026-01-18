@@ -277,7 +277,7 @@ async function confirmPayment() {
         console.log(`Processing payment for ${raffleIds.length} raffle(s):`, raffleIds);
 
         // Call new cart/purchase endpoint (single transaction for multiple raffles)
-        const response = await fetch(`${CONFIG.API_URL}/cart/purchase`, {
+        const response = await fetch(`${CONFIG.API_URL}/raffles/cart/purchase`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
