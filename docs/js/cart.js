@@ -218,7 +218,7 @@ async function handleCartCheckout() {
         // Open payment modal with confirmation code and raffle IDs
         if (typeof showPaymentModal === 'function') {
             showPaymentModal(
-                reservations.map(r => r.raffleId),
+                reservations.map(r => r.raffleId),  // Pass actual raffle IDs, not indices
                 reservations[0].confirmationCode,
                 totalAmount
             );
