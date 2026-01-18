@@ -111,10 +111,10 @@ function generateQRCode(raffleId) {
         <div style="text-align: center;">
             <img src="${qrImagePath}" alt="Yape QR" style="max-width: 250px; border-radius: 8px;">
             <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--color-text-secondary);">
-                Escanea el cÃ³digo QR con Yape
+                Escanea el código QR con Yape
             </p>
             <p style="font-weight: 600; color: var(--color-primary);">
-                NÃºmero: +51 964 910 248
+                Número: +51 964 910 248
             </p>
             <p style="font-size: 0.875rem; margin-top: 0.5rem;">
                 Monto: S/ 5.00
@@ -189,7 +189,7 @@ async function checkPaymentStatus() {
                 onPaymentVerified(data);
             } else {
                 // Still waiting
-                showValidationMessage('â³ Esperando confirmaciÃ³n de pago...', '');
+                showValidationMessage('⏳ Esperando confirmación de pago...', '');
             }
         }
     } catch (error) {
@@ -206,7 +206,7 @@ function onPaymentVerified(data) {
 
     // Show success message
     showValidationMessage(
-        `âœ… Pago verificado - OperaciÃ³n #${data.yape_operation_code}`,
+        `✅ Pago verificado - Operación #${data.yape_operation_code}`,
         'success'
     );
 
@@ -243,7 +243,7 @@ async function confirmPayment() {
 
     // Validate fields
     if (!yapeCode || !yapeSender) {
-        showToast('Por favor completa todos los campos de verificaciÃ³n', 'error');
+        showToast('Por favor completa todos los campos de verificación', 'error');
 
         // Highlight empty fields
         if (!yapeCode && yapeCodeInput) {
@@ -257,7 +257,7 @@ async function confirmPayment() {
 
     // Validate code length (at least 6 characters)
     if (yapeCode.length < 6) {
-        showToast('El cÃ³digo de operaciÃ³n debe tener al menos 6 caracteres', 'error');
+        showToast('El código de operación debe tener al menos 6 caracteres', 'error');
         if (yapeCodeInput) yapeCodeInput.style.borderColor = '#dc3545';
         return;
     }
@@ -275,7 +275,7 @@ async function confirmPayment() {
 
         // Handle both single raffle and multiple raffles from cart
         const raffleIds = Array.isArray(currentRaffleId) ? currentRaffleId : [currentRaffleId];
-        
+
         console.log(`ðŸ”µ Processing ${raffleIds.length} raffle(s) as BATCH:`, raffleIds);
 
         const userId = localStorage.getItem('user_id');
@@ -306,7 +306,7 @@ async function confirmPayment() {
         clearInterval(paymentTimer);
 
         // Show success
-        const message = `Â¡${data.raffle_count} rifa(s) registrada(s) por S/ ${data.total_amount.toFixed(2)}! SerÃ¡ verificada por un administrador`;
+        const message = `¡${data.raffle_count} rifa(s) registrada(s) por S/ ${data.total_amount.toFixed(2)}! Será verificada por un administrador`;
         showToast(message, 'success');
 
         // Clear cart
@@ -334,7 +334,7 @@ async function confirmPayment() {
  * Cancel payment
  */
 async function cancelPayment() {
-    if (confirm('Â¿EstÃ¡s seguro de cancelar este pago? La rifa serÃ¡ liberada.')) {
+    if (confirm('¿Estás seguro de cancelar este pago? La rifa será liberada.')) {
         try {
             const response = await API.cancelReservation(currentRaffleId);
 
@@ -354,7 +354,7 @@ async function cancelPayment() {
 // Event listeners
 if (closeModalBtn) {
     closeModalBtn.addEventListener('click', () => {
-        if (confirm('Â¿Cancelar el proceso de pago?')) {
+        if (confirm('¿Cancelar el proceso de pago?')) {
             cancelPayment();
         }
     });
@@ -373,7 +373,7 @@ if (paymentModal) {
     const overlay = paymentModal.querySelector('.modal-overlay');
     if (overlay) {
         overlay.addEventListener('click', () => {
-            if (confirm('Â¿Cancelar el proceso de pago?')) {
+            if (confirm('¿Cancelar el proceso de pago?')) {
                 cancelPayment();
             }
         });
