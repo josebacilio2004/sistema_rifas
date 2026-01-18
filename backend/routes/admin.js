@@ -296,7 +296,40 @@ router.post('/approve-payment/:id', verifyToken, isAdmin, async (req, res, next)
                     [transaction.user_id, raffleId]
                 );
             }
+
+            return { user_id: transaction.user_id, raffle_ids: raffleIds };
         });
+
+        // Send WhatsApp notification to customer
+        try {
+            const whatsappService = require('../services/whatsappService');
+
+            if (result.user_id) {
+                // Get user info
+                const userResult = await db.query(
+                    'SELECT nombre, apellido, dni, celular FROM users WHERE id = $1',
+                    [result.user_id]
+                );
+
+                if (userResult.rows.length > 0) {
+                    const user = userResult.rows[0];
+                    const raffleNumbers = result.raffle_ids.join(', ');
+                    const totalAmount = result.raffle_ids.length * 5.00;
+
+                    await whatsappService.notifyCustomerPurchaseApproved({
+                        customerPhone: user.celular,
+                        customerName: user.nombre,
+                        raffleId: raffleNumbers,
+                        amount: totalAmount,
+                        customerDNI: user.dni
+                    });
+
+                    console.log('✅ Customer notified via WhatsApp');
+                }
+            }
+        } catch (whatsappError) {
+            console.error('⚠️ Customer WhatsApp failed:', whatsappError.message);
+        }
 
         res.json({ message: 'Pago aprobado exitosamente' });
     } catch (error) {
