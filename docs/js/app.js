@@ -17,6 +17,10 @@ function init() {
     const savedUser = localStorage.getItem('rifaUser');
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
+        // Ensure user_id is in localStorage (for older sessions)
+        if (currentUser.id && !localStorage.getItem('user_id')) {
+            localStorage.setItem('user_id', currentUser.id);
+        }
         showRafflesView();
     }
 
@@ -52,6 +56,7 @@ async function handleRegistration(event) {
 
         // Save to localStorage
         localStorage.setItem('rifaUser', JSON.stringify(currentUser));
+        localStorage.setItem('user_id', currentUser.id);  // Save user_id separately for API calls
 
         showToast('Registro exitoso. ¡Ahora puedes seleccionar tu rifa!', 'success');
 
@@ -71,6 +76,7 @@ function handleLogout() {
     if (confirm('¿Estás seguro de que deseas cambiar de usuario?')) {
         currentUser = null;
         localStorage.removeItem('rifaUser');
+        localStorage.removeItem('user_id');  // Also clear user_id
         showRegistrationView();
         showToast('Sesión cerrada', 'info');
     }
