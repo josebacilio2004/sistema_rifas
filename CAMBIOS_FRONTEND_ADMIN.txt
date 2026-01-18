@@ -1,0 +1,54 @@
+// ========================================
+// CAMBIO 2: admin.js - Función loadPendingVerifications
+// ========================================
+// UBICACIÓN: docs/js/admin.js, aproximadamente línea 354-400
+// BUSCAR la función: async function loadPendingVerifications()
+// REEMPLAZAR TODO EL CONTENIDO CON:
+
+async function loadPendingVerifications() {
+    if (!verificationsTableBody) return;
+    
+    verificationsTableBody.innerHTML = '<tr><td colspan="7" class="loading">Cargando pagos pendientes...</td></tr>';
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/admin/pending-verifications`, {
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar verificaciones');
+
+        const verifications = await response.json();
+
+        if (verifications.length === 0) {
+            verificationsTableBody.innerHTML = '<tr><td colspan="7" class="loading">No hay pagos pendientes</td></tr>';
+            return;
+        }
+
+        verificationsTableBody.innerHTML = verifications.map(v => {
+            // Handle both single and multiple raffles
+            const raffleDisplay = v.raffle_ids && Array.isArray(v.raffle_ids) && v.raffle_ids.length > 0
+                ? v.raffle_ids.filter(id => id !== null).join(', ')
+                : (v.raffle_id || 'N/A');
+            
+            return `
+            <tr>
+                <td>${new Date(v.created_at).toLocaleString('es-PE')}</td>
+                <td>${v.nombre || 'Guest'} ${v.apellido || ''}<br><small>${v.celular || 'N/A'}</small></td>
+                <td><strong>Rifas: ${raffleDisplay}</strong></td>
+                <td><strong>S/ ${parseFloat(v.amount).toFixed(2)}</strong></td>
+                <td><code>${v.yape_operation_code}</code></td>
+                <td>${v.yape_sender_name}</td>
+                <td>
+                    <button class="btn-approve" onclick="approvePayment('${v.id}')">✓ Aprobar</button>
+                    <button class="btn-reject" onclick="rejectPayment('${v.id}')">✗ Rechazar</button>
+                </td>
+            </tr>
+        `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading pending verifications:', error);
+        verificationsTableBody.innerHTML = '<tr><td colspan="7" class="loading">Error al cargar</td></tr>';
+    }
+}
