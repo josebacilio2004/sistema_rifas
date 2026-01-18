@@ -388,7 +388,7 @@ async function loadPendingVerifications() {
             <tr>
                 <td>${new Date(v.created_at).toLocaleString('es-PE')}</td>
                 <td>${v.nombre || 'Guest'} ${v.apellido || ''}<br><small>${v.celular || 'N/A'}</small></td>
-                <td><strong>#${v.raffle_id}</strong></td>
+                <td><strong>Rifas: ${v.raffle_ids && Array.isArray(v.raffle_ids) && v.raffle_ids.length > 0 ? v.raffle_ids.filter(id => id !== null).join(', ') : (v.raffle_id || 'N/A')}</strong></td>
                 <td><strong>S/ ${parseFloat(v.amount).toFixed(2)}</strong></td>
                 <td><code>${v.yape_operation_code}</code></td>
                 <td>${v.yape_sender_name}</td>

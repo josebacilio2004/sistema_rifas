@@ -276,57 +276,42 @@ async function confirmPayment() {
 
         console.log(`Processing payment for ${raffleIds.length} raffle(s):`, raffleIds);
 
-        // Create separate transaction for each raffle
-        const results = [];
-        const errors = [];
+        // Call new cart/purchase endpoint (single transaction for multiple raffles)
+        const response = await fetch(`${CONFIG.API_URL}/cart/purchase`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                raffle_ids: raffleIds,
+                user_id: localStorage.getItem('user_id'),
+                yape_operation_code: yapeCode,
+                yape_sender_name: yapeSender
+            })
+        });
 
-        for (const raffleId of raffleIds) {
-            try {
-                const response = await API.purchaseRaffle(raffleId, {
-                    yape_operation_code: yapeCode,
-                    yape_sender_name: yapeSender
-                });
-                results.push({ raffleId, response });
-                console.log(`✅ Raffle ${raffleId} purchase registered`);
-            } catch (error) {
-                console.error(`❌ Error with raffle ${raffleId}:`, error);
-                errors.push({ raffleId, error: error.message });
-            }
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error al procesar el pago');
         }
+
+        const data = await response.json();
 
         // Clear timers
         clearInterval(paymentTimer);
 
-        // Show results
-        if (results.length > 0) {
-            const message = results.length === raffleIds.length
-                ? `¡${results.length} compra(s) registrada(s)! Serán verificadas por un administrador`
-                : `${results.length} de ${raffleIds.length} compra(s) registrada(s)`;
+        // Show success message
+        const message = `¡${data.raffle_count} rifa(s) registrada(s) por S/ ${data.total_amount.toFixed(2)}! Será verificada por un administrador`;
+        showToast(message, 'success');
 
-            showToast(message, results.length === raffleIds.length ? 'success' : 'warning');
-
-            // Clear cart after successful purchase
-            if (typeof clearCart === 'function') {
-                clearCart();
-            }
-
-            // Close modal and reload
-            closePaymentModal();
-            loadRaffles();
+        // Clear cart after successful purchase
+        if (typeof clearCart === 'function') {
+            clearCart();
         }
 
-        // Show errors if any
-        if (errors.length > 0) {
-            const errorMsg = errors.map(e => `Rifa ${e.raffleId}: ${e.error}`).join('\n');
-            showToast(errorMsg, 'error');
-
-            // Re-enable button if all failed
-            if (confirmPaymentBtn && results.length === 0) {
-                confirmPaymentBtn.disabled = false;
-                confirmPaymentBtn.innerHTML = '<span>He completado el pago</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 5.5L7.5 14.5L3.5 10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>';
-            }
-        }
-
+        // Close modal and reload
+        closePaymentModal();
+        loadRaffles();
     } catch (error) {
         console.error('Error confirming payment:', error);
         showToast(error.message || 'Error al confirmar el pago', 'error');
