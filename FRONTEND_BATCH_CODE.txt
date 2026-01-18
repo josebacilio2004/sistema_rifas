@@ -1,0 +1,44 @@
+        // Handle both single raffle and multiple raffles from cart
+        const raffleIds = Array.isArray(currentRaffleId) ? currentRaffleId : [currentRaffleId];
+        
+        console.log(`🔵 Processing ${raffleIds.length} raffle(s) as BATCH:`, raffleIds);
+
+        const userId = localStorage.getItem('user_id');
+
+        // Use BATCH endpoint (creates ONE transaction for all raffles)
+        const response = await fetch(`${CONFIG.API_URL}/raffles/purchase-batch`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                raffle_ids: raffleIds,
+                user_id: userId,
+                yape_operation_code: yapeCode,
+                yape_sender_name: yapeSender
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error al procesar');
+        }
+
+        const data = await response.json();
+        console.log('✅ BATCH SUCCESS:', data);
+
+        // Clear timers
+        clearInterval(paymentTimer);
+
+        // Show success
+        const message = `¡${data.raffle_count} rifa(s) registrada(s) por S/ ${data.total_amount.toFixed(2)}! Será verificada por un administrador`;
+        showToast(message, 'success');
+
+        // Clear cart
+        if (typeof clearCart === 'function') {
+            clearCart();
+        }
+
+        // Close modal and reload
+        closePaymentModal();
+        loadRaffles();

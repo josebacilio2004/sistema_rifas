@@ -1,0 +1,65 @@
+﻿
+    } catch (error) {
+        console.error('Error confirming payment:', error);
+        showToast(error.message || 'Error al confirmar el pago', 'error');
+
+        // Re-enable button
+        if (confirmPaymentBtn) {
+            confirmPaymentBtn.disabled = false;
+            confirmPaymentBtn.innerHTML = '<span>He completado el pago</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 5.5L7.5 14.5L3.5 10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+        }
+    }
+}
+
+/**
+ * Cancel payment
+ */
+async function cancelPayment() {
+    if (confirm('Â¿EstÃ¡s seguro de cancelar este pago? La rifa serÃ¡ liberada.')) {
+        try {
+            const response = await API.cancelReservation(currentRaffleId);
+
+            if (response.success) {
+                clearInterval(paymentTimer);
+                clearInterval(verificationPoller);
+                showToast('Pago cancelado', 'info');
+                closePaymentModal();
+                loadRaffles();
+            }
+        } catch (error) {
+            showToast(error.message || 'Error al cancelar', 'error');
+        }
+    }
+}
+
+// Event listeners
+if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', () => {
+        if (confirm('Â¿Cancelar el proceso de pago?')) {
+            cancelPayment();
+        }
+    });
+}
+
+if (confirmPaymentBtn) {
+    confirmPaymentBtn.addEventListener('click', confirmPayment);
+}
+
+if (cancelPaymentBtn) {
+    cancelPaymentBtn.addEventListener('click', cancelPayment);
+}
+
+// Close modal when clicking overlay
+if (paymentModal) {
+    const overlay = paymentModal.querySelector('.modal-overlay');
+    if (overlay) {
+        overlay.addEventListener('click', () => {
+            if (confirm('Â¿Cancelar el proceso de pago?')) {
+                cancelPayment();
+            }
+        });
+    }
+}
+
+// Make openPaymentModal available globally
+window.openPaymentModal = openPaymentModal;

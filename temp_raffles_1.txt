@@ -1,0 +1,219 @@
+﻿const express = require('express');
+const router = express.Router();
+const db = require('../services/database');
+const timerService = require('../services/timer');
+const { validateRaffleId } = require('../utils/validators');
+const QRCode = require('qrcode');
+const { v4: uuidv4 } = require('uuid');
+
+// WhatsApp Business API Service
+let whatsappService;
+try {
+    whatsappService = require('../services/whatsappService');
+} catch (error) {
+    console.log('âš ï¸  WhatsApp service not configured - notifications disabled');
+    whatsappService = null;
+}
+
+/**
+ * GET /api/raffles
+ * Get all raffles with their current status
+ */
+router.get('/', async (req, res, next) => {
+    try {
+        const result = await db.query(`
+            SELECT 
+                r.id,
+                r.status,
+                r.reserved_at,
+                r.purchased_at,
+                CASE 
+                    WHEN r.status = 'reserved' THEN 
+                        EXTRACT(EPOCH FROM (r.reserved_at + INTERVAL '5 minutes' - NOW()))::INTEGER
+                    ELSE NULL
+                END as seconds_remaining
+            FROM raffles r
+            ORDER BY r.id ASC
+        `);
+
+        // Clean up any expired reservations in the response
+        const raffles = result.rows.map(raffle => {
+            if (raffle.status === 'reserved' && raffle.seconds_remaining <= 0) {
+                return { ...raffle, status: 'available', seconds_remaining: null };
+            }
+            return raffle;
+        });
+
+        res.json({ raffles });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * POST /api/raffles/:id/reserve
+ * Reserve a raffle number
+ */
+router.post('/:id/reserve', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { user_id } = req.body;
+
+        // Validate raffle ID
+        const raffleValidation = validateRaffleId(id);
+        if (!raffleValidation.valid) {
+            return res.status(400).json({ error: raffleValidation.message });
+        }
+
+        // Validate user ID
+        if (!user_id) {
+            return res.status(400).json({ error: 'user_id es requerido' });
+        }
+
+        // Use transaction to ensure atomicity
+        const result = await db.transaction(async (client) => {
+            // Check if raffle is available
+            const raffleCheck = await client.query(
+                'SELECT id, status, reserved_at FROM raffles WHERE id = $1 FOR UPDATE',
+                [raffleValidation.id]
+            );
+
+            if (raffleCheck.rows.length === 0) {
+                throw new Error('Rifa no encontrada');
+            }
+
+            const raffle = raffleCheck.rows[0];
+
+            // If reserved, check if it's expired
+            if (raffle.status === 'reserved') {
+                const expirationTime = new Date(Date.now() - timerService.RESERVATION_TIMEOUT_MINUTES * 60 * 1000);
+                if (new Date(raffle.reserved_at) > expirationTime) {
+                    throw new Error('Esta rifa ya estÃ¡ reservada. Por favor, selecciona otra.');
+                }
+            }
+
+            if (raffle.status === 'sold') {
+                throw new Error('Esta rifa ya fue vendida. Por favor, selecciona otra.');
+            }
+
+            // Reserve the raffle
+            const reservationTimeout = timerService.RESERVATION_TIMEOUT_MINUTES;
+            const updateResult = await client.query(
+                `UPDATE raffles 
+                 SET status = 'reserved', 
+                     reserved_by = $1, 
+                     reserved_at = NOW(),
+                     reserved_until = NOW() + INTERVAL '${reservationTimeout} minutes'
+                 WHERE id = $2 
+                 RETURNING id, status, reserved_at, reserved_until`,
+                [user_id, raffleValidation.id]
+            );
+
+            return updateResult.rows[0];
+        });
+
+        // Send webhook notification
+        await timerService.sendWebhookNotification({
+            event: 'raffle_reserved',
+            raffle_id: result.id,
+            user_id: user_id,
+            timestamp: new Date().toISOString()
+        });
+
+        // Send WhatsApp notification
+        if (whatsappService) {
+            try {
+                const userResult = await db.query(
+                    'SELECT nombre, apellido, dni, celular FROM users WHERE id = $1',
+                    [user_id]
+                );
+                if (userResult.rows.length > 0) {
+                    await whatsappService.sendReservationNotification(
+                        userResult.rows[0],
+                        result.id
+                    );
+                    console.log('âœ… WhatsApp reservation notification sent');
+                }
+            } catch (whatsappError) {
+                console.error('âŒ WhatsApp notification failed:', whatsappError.message);
+                // Don't fail the reservation if WhatsApp fails
+            }
+        }
+
+        res.json({
+            message: 'Rifa reservada exitosamente',
+            raffle: {
+                id: result.id,
+                status: result.status,
+                reserved_at: result.reserved_at,
+                expires_in_seconds: timerService.RESERVATION_TIMEOUT_MINUTES * 60
+            }
+        });
+    } catch (error) {
+        if (error.message.includes('ya estÃ¡ reservada') || error.message.includes('ya fue vendida')) {
+            return res.status(409).json({ error: error.message });
+        }
+        next(error);
+    }
+});
+
+/**
+ * POST /api/raffles/:id/purchase
+ * Complete purchase of a reserved raffle
+ */
+router.post('/:id/purchase', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        let { user_id, yape_operation_code, yape_sender_name } = req.body;
+
+        // Validate raffle ID
+        const raffleValidation = validateRaffleId(id);
+        if (!raffleValidation.valid) {
+            return res.status(400).json({ error: raffleValidation.message });
+        }
+
+        if (!user_id) {
+            user_id = `guest_${Date.now()}`;
+            console.log('ðŸ“ Generated temporary user_id:', user_id);
+        }
+
+        // Validate Yape data (required for manual verification)
+        if (!yape_operation_code || !yape_sender_name) {
+            return res.status(400).json({
+                error: 'CÃ³digo de operaciÃ³n Yape y nombre del yapero son requeridos'
+            });
+        }
+
+        // Check for duplicate Yape operation code
+        const duplicateCheck = await db.query(
+            `SELECT id FROM transactions 
+             WHERE yape_operation_code = $1 
+             AND status IN ('verified', 'pending_verification')`,
+            [yape_operation_code]
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+            return res.status(400).json({
+                error: 'Este cÃ³digo de operaciÃ³n ya fue usado. Verifica tu cÃ³digo.'
+            });
+        }
+
+        // Use transaction
+        const result = await db.transaction(async (client) => {
+            // Get current raffle estado
+            const raffle = await client.query(
+                `SELECT id, status, reserved_by, reserved_at
+                 FROM raffles 
+                 WHERE id = $1`,
+                [raffleValidation.id]
+            );
+
+            if (raffle.rows.length === 0) {
+                throw new Error('Rifa no encontrada');
+            }
+
+            const current = raffle.rows[0];
+
+            // Permitir purchase si NO estÃ¡ sold
+            // Esto permite compra directa de available y override de reserved
+
