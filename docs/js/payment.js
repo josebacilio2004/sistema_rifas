@@ -27,7 +27,7 @@ function openPaymentModal(raffleIds, confirmationCode, totalAmount) {
     const raffleIdsArray = Array.isArray(raffleIds) ? raffleIds : [raffleIds];
     const amount = totalAmount || (raffleIdsArray.length * 5.00);
 
-    currentRaffleId = raffleIdsArray[0]; // Store first for backward compatibility
+    currentRaffleId = raffleIdsArray; // Store entire array for multiple raffle purchases
     currentConfirmationCode = confirmationCode;
 
     // Update raffle numbers display
