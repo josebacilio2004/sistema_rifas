@@ -344,63 +344,115 @@ router.post('/approve-payment/:id', verifyToken, isAdmin, async (req, res, next)
 router.post('/reject-payment/:id', verifyToken, isAdmin, async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { reason } = req.body;
 
-        await db.transaction(async (client) => {
-            // Get transaction info
-            const txResult = await client.query(
-                'SELECT raffle_id, status FROM transactions WHERE id = $1',
+        const result = await db.transaction(async (client) => {
+            // Get transaction
+            const transaction = await client.query(
+                'SELECT * FROM transactions WHERE id = $1',
                 [id]
             );
 
-            if (txResult.rows.length === 0) {
+            if (transaction.rows.length === 0) {
                 throw new Error('Transacción no encontrada');
             }
 
-            const transaction = txResult.rows[0];
+            const trans = transaction.rows[0];
 
-            if (transaction.status !== 'pending_verification') {
-                throw new Error('Esta transacción ya fue procesada');
-            }
+            // Update transaction status to rejected
+            await client.query(
+                `UPDATE transactions SET status = 'rejected', updated_at = NOW() WHERE id = $1`,
+                [id]
+            );
 
-            // Get all raffles for this transaction
-            const rafflesResult = await client.query(
+            // Get raffle IDs (support both old single raffle and new multiple raffles)
+            let raffleIds = [trans.raffle_id];
+
+            // Try to get from junction table if exists
+            const junctionRaffles = await client.query(
                 'SELECT raffle_id FROM transaction_raffles WHERE transaction_id = $1',
                 [id]
             );
 
-            const raffleIds = rafflesResult.rows.length > 0
-                ? rafflesResult.rows.map(r => r.raffle_id)
-                : (transaction.raffle_id ? [transaction.raffle_id] : []);
+            if (junctionRaffles.rows.length > 0) {
+                raffleIds = junctionRaffles.rows.map(r => r.raffle_id);
+            }
 
-            // Update transaction to cancelled
+            // Free all raffles
             await client.query(
-                `UPDATE transactions 
+                `UPDATE raffles SET status = 'available', reserved_by = NULL, reserved_at = NULL 
+                 WHERE id = ANY($1::int[])`,
+                [raffleIds]
+            );
+
+            return { success: true, raffles_freed: raffleIds.length };
+        });
+
+        res.json(result);
+
+    } catch (error) {
+        console.error('Error rejecting payment:', error);
+        next(error);
+    }
+});
+try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    await db.transaction(async (client) => {
+        // Get transaction info
+        const txResult = await client.query(
+            'SELECT raffle_id, status FROM transactions WHERE id = $1',
+            [id]
+        );
+
+        if (txResult.rows.length === 0) {
+            throw new Error('Transacción no encontrada');
+        }
+
+        const transaction = txResult.rows[0];
+
+        if (transaction.status !== 'pending_verification') {
+            throw new Error('Esta transacción ya fue procesada');
+        }
+
+        // Get all raffles for this transaction
+        const rafflesResult = await client.query(
+            'SELECT raffle_id FROM transaction_raffles WHERE transaction_id = $1',
+            [id]
+        );
+
+        const raffleIds = rafflesResult.rows.length > 0
+            ? rafflesResult.rows.map(r => r.raffle_id)
+            : (transaction.raffle_id ? [transaction.raffle_id] : []);
+
+        // Update transaction to cancelled
+        await client.query(
+            `UPDATE transactions 
                  SET status = 'cancelled',
                      rejection_reason = $1,
                      verified_by = $2
                  WHERE id = $3`,
-                [reason || 'Rechazado por administrador', req.user.id, id]
-            );
+            [reason || 'Rechazado por administrador', req.user.id, id]
+        );
 
-            // Free ALL raffles
-            for (const raffleId of raffleIds) {
-                await client.query(
-                    `UPDATE raffles 
+        // Free ALL raffles
+        for (const raffleId of raffleIds) {
+            await client.query(
+                `UPDATE raffles 
                      SET status = 'available',
                          reserved_by = NULL,
                          reserved_at = NULL,
                          reserved_until = NULL
                      WHERE id = $1`,
-                    [raffleId]
-                );
-            }
-        });
+                [raffleId]
+            );
+        }
+    });
 
-        res.json({ message: 'Pago rechazado y rifas liberadas' });
-    } catch (error) {
-        next(error);
-    }
+    res.json({ message: 'Pago rechazado y rifas liberadas' });
+} catch (error) {
+    next(error);
+}
 });
 
 module.exports = router;
