@@ -104,6 +104,34 @@
                 </div>
             </section>
 
+            <!-- Pending Payments Verification Section -->
+            <section class="pending-verifications-section">
+                <div class="section-header">
+                    <h2>🔔 Pagos Pendientes de Verificación</h2>
+                    <button id="refresh-verifications-btn" class="btn-secondary">🔄 Actualizar</button>
+                </div>
+                <div class="table-container">
+                    <table id="verifications-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Usuario</th>
+                                <th>Rifa #</th>
+                                <th>Monto</th>
+                                <th>Código Yape</th>
+                                <th>Yapero</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7" class="loading">Cargando pagos pendientes...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- Carousel Management Section -->
             <section class="carousel-section">
                 <div class="section-header">

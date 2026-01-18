@@ -222,16 +222,19 @@ router.post('/:id/purchase', async (req, res, next) => {
             }
 
             // Si está reserved por OTRO usuario (no el mismo), verificar tiempo
-            if (current.status === 'reserved' && current.reserved_by && current.reserved_by !== user_id) {
+            if (current.status === 'reserved' && current.reserved_by) {
                 const reservedAt = new Date(current.reserved_at);
                 const now = new Date();
                 const secondsSinceReserved = (now - reservedAt) / 1000;
 
-                // Solo bloquear si OTRO usuario la reservó hace MENOS de 1 minuto
-                if (secondsSinceReserved < 60) {
-                    throw new Error('Esta rifa acaba de ser reservada por otro usuario. Intenta en 1 minuto.');
+                // Si es el mismo usuario con UUID válido, permitir compra inmediata
+                const isSameUser = isValidUUID(user_id) && isValidUUID(current.reserved_by) && current.reserved_by === user_id;
+
+                // Para diferentes usuarios o guests, verificar que haya pasado tiempo suficiente
+                if (!isSameUser && secondsSinceReserved < 60) {
+                    throw new Error('Esta rifa acaba de ser reservada. Intenta en 1 minuto.');
                 }
-                // Si > 1 min, permitir override
+                // Si es el mismo usuario o pasó > 60 segundos, permitir override
             }
 
             // Si está reserved por el MISMO user, permitir (es su propia reserva del carrito)

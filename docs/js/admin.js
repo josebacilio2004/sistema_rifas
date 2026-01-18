@@ -31,6 +31,12 @@ function setupEventListeners() {
     loginForm.addEventListener('submit', handleLogin);
     logoutBtn.addEventListener('click', handleLogout);
     refreshBtn.addEventListener('click', loadDashboardData);
+
+    // Verifications refresh
+    const refreshVerificationsBtn = document.getElementById('refresh-verifications-btn');
+    if (refreshVerificationsBtn) {
+        refreshVerificationsBtn.addEventListener('click', loadPendingVerifications);
+    }
 }
 
 function checkAuth() {
@@ -114,6 +120,9 @@ async function loadDashboardData() {
 
         // Load carousel items
         await loadCarouselItems();
+
+        // Load pending verifications
+        await loadPendingVerifications();
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -349,3 +358,103 @@ async function deleteCarouselItem(id) {
 // Make functions global
 window.editCarouselItem = editCarouselItem;
 window.deleteCarouselItem = deleteCarouselItem;
+
+// === PENDING VERIFICATIONS ===
+
+const verificationsTableBody = document.querySelector('#verifications-table tbody');
+
+async function loadPendingVerifications() {
+    if (!verificationsTableBody) return;
+
+    verificationsTableBody.innerHTML = '<tr><td colspan="7" class="loading">Cargando pagos pendientes...</td></tr>';
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/admin/pending-verifications`, {
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar verificaciones');
+
+        const verifications = await response.json();
+
+        if (verifications.length === 0) {
+            verificationsTableBody.innerHTML = '<tr><td colspan="7" class="loading">No hay pagos pendientes</td></tr>';
+            return;
+        }
+
+        verificationsTableBody.innerHTML = verifications.map(v => `
+            <tr>
+                <td>${new Date(v.created_at).toLocaleString('es-PE')}</td>
+                <td>${v.nombre || 'Guest'} ${v.apellido || ''}<br><small>${v.celular || 'N/A'}</small></td>
+                <td><strong>#${v.raffle_id}</strong></td>
+                <td><strong>S/ ${parseFloat(v.amount).toFixed(2)}</strong></td>
+                <td><code>${v.yape_operation_code}</code></td>
+                <td>${v.yape_sender_name}</td>
+                <td>
+                    <button class="btn-approve" onclick="approvePayment('${v.id}')">✓ Aprobar</button>
+                    <button class="btn-reject" onclick="rejectPayment('${v.id}')">✗ Rechazar</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading pending verifications:', error);
+        verificationsTableBody.innerHTML = '<tr><td colspan="7" class="loading">Error al cargar</td></tr>';
+    }
+}
+
+async function approvePayment(transactionId) {
+    if (!confirm('¿Aprobar este pago? La rifa se marcará como vendida.')) return;
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/admin/approve-payment/${transactionId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Error al aprobar pago');
+
+        const data = await response.json();
+        alert(data.message);
+
+        // Reload dashboard
+        await loadDashboardData();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al aprobar: ' + error.message);
+    }
+}
+
+async function rejectPayment(transactionId) {
+    const reason = prompt('¿Razón del rechazo? (opcional):');
+    if (reason === null) return; // User cancelled
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/admin/reject-payment/${transactionId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${state.token}`
+            },
+            body: JSON.stringify({ reason })
+        });
+
+        if (!response.ok) throw new Error('Error al rechazar pago');
+
+        const data = await response.json();
+        alert(data.message);
+
+        // Reload dashboard
+        await loadDashboardData();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al rechazar: ' + error.message);
+    }
+}
+
+// Make functions global
+window.approvePayment = approvePayment;
+window.rejectPayment = rejectPayment;

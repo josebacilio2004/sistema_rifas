@@ -196,4 +196,144 @@ router.get('/user/:id', verifyToken, isAdmin, async (req, res, next) => {
     }
 });
 
+/**
+ * GET /api/admin/pending-verifications
+ * Lista de pagos Yape pendientes de verificación
+ */
+router.get('/pending-verifications', verifyToken, isAdmin, async (req, res, next) => {
+    try {
+        const pending = await db.query(`
+            SELECT 
+                t.id,
+                t.raffle_id,
+                t.amount,
+                t.yape_operation_code,
+                t.yape_sender_name,
+                t.created_at,
+                t.confirmation_code,
+                u.nombre,
+                u.apellido,
+                u.dni,
+                u.celular
+            FROM transactions t
+            LEFT JOIN users u ON t.user_id = u.id
+            WHERE t.status = 'pending_verification'
+            ORDER BY t.created_at DESC
+        `);
+
+        res.json(pending.rows);
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * POST /api/admin/approve-payment/:id
+ * Aprobar un pago pendiente
+ */
+router.post('/approve-payment/:id', verifyToken, isAdmin, async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        await db.transaction(async (client) => {
+            // Obtener información de la transacción
+            const txResult = await client.query(
+                'SELECT user_id, raffle_id, status FROM transactions WHERE id = $1',
+                [id]
+            );
+
+            if (txResult.rows.length === 0) {
+                throw new Error('Transacción no encontrada');
+            }
+
+            const transaction = txResult.rows[0];
+
+            if (transaction.status !== 'pending_verification') {
+                throw new Error('Esta transacción ya fue procesada');
+            }
+
+            // Actualizar transacción a completada
+            await client.query(
+                `UPDATE transactions 
+                 SET status = 'completed',
+                     completed_at = NOW(),
+                     verified_by = $1
+                 WHERE id = $2`,
+                [req.user.id, id]
+            );
+
+            // Marcar rifa como vendida
+            await client.query(
+                `UPDATE raffles 
+                 SET status = 'sold',
+                     purchased_by = $1,
+                     purchased_at = NOW(),
+                     reserved_by = NULL,
+                     reserved_at = NULL,
+                     reserved_until = NULL
+                 WHERE id = $2`,
+                [transaction.user_id, transaction.raffle_id]
+            );
+        });
+
+        res.json({ message: 'Pago aprobado exitosamente' });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * POST /api/admin/reject-payment/:id
+ * Rechazar un pago pendiente
+ */
+router.post('/reject-payment/:id', verifyToken, isAdmin, async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        await db.transaction(async (client) => {
+            // Obtener información de la transacción
+            const txResult = await client.query(
+                'SELECT raffle_id, status FROM transactions WHERE id = $1',
+                [id]
+            );
+
+            if (txResult.rows.length === 0) {
+                throw new Error('Transacción no encontrada');
+            }
+
+            const transaction = txResult.rows[0];
+
+            if (transaction.status !== 'pending_verification') {
+                throw new Error('Esta transacción ya fue procesada');
+            }
+
+            // Actualizar transacción a cancelada
+            await client.query(
+                `UPDATE transactions 
+                 SET status = 'cancelled',
+                     rejection_reason = $1,
+                     verified_by = $2
+                 WHERE id = $3`,
+                [reason || 'Rechazado por administrador', req.user.id, id]
+            );
+
+            // Liberar la rifa
+            await client.query(
+                `UPDATE raffles 
+                 SET status = 'available',
+                     reserved_by = NULL,
+                     reserved_at = NULL,
+                     reserved_until = NULL
+                 WHERE id = $1`,
+                [transaction.raffle_id]
+            );
+        });
+
+        res.json({ message: 'Pago rechazado y rifa liberada' });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;
