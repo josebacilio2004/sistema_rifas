@@ -175,11 +175,31 @@
             </section>
 
             <!-- Users Table -->
-            <section class="users-section">
+            <section id="users-section" class="users-section">
                 <div class="section-header">
                     <h2>👥 Usuarios Registrados</h2>
                     <button id="refresh-btn" class="btn-secondary">🔄 Actualizar</button>
                 </div>
+
+                <!-- Search and Filters -->
+                <div class="filters-container">
+                    <div class="search-box">
+                        <input type="text" id="users-search" placeholder="🔍 Buscar por nombre, DNI o celular..."
+                            class="search-input">
+                    </div>
+                    <div class="filter-group">
+                        <label for="users-sort">Ordenar por:</label>
+                        <select id="users-sort" class="filter-select">
+                            <option value="created_at-DESC">Más recientes</option>
+                            <option value="created_at-ASC">Más antiguos</option>
+                            <option value="nombre-ASC">Nombre (A-Z)</option>
+                            <option value="nombre-DESC">Nombre (Z-A)</option>
+                            <option value="rifas_compradas-DESC">Más rifas compradas</option>
+                            <option value="total_gastado-DESC">Mayor gasto</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="table-container">
                     <table id="users-table">
                         <thead>
@@ -229,12 +249,30 @@
                 </div>
             </section>
 
-            <!-- Pending Payments Verification Section -->
-            <section class="pending-verifications-section">
+            <!-- Pending Verifications Section -->
+            <section class="pending-section">
                 <div class="section-header">
-                    <h2>🔔 Pagos Pendientes de Verificación</h2>
-                    <button id="refresh-verifications-btn" class="btn-secondary">🔄 Actualizar</button>
+                    <h2>⏳ Verificaciones Pendientes</h2>
+                    <button id="refresh-pending-btn" class="btn-secondary">🔄 Actualizar</button>
                 </div>
+
+                <!-- Search and Filters -->
+                <div class="filters-container">
+                    <div class="search-box">
+                        <input type="text" id="verifications-search"
+                            placeholder="🔍 Buscar por nombre, código Yape o confirmación..." class="search-input">
+                    </div>
+                    <div class="filter-group">
+                        <label for="verifications-status">Estado:</label>
+                        <select id="verifications-status" class="filter-select">
+                            <option value="pending_verification">Pendientes</option>
+                            <option value="approved">Aprobadas</option>
+                            <option value="rejected">Rechazadas</option>
+                            <option value="all">Todas</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="table-container">
                     <table id="verifications-table">
                         <thead>

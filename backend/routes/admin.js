@@ -106,7 +106,9 @@ router.get('/dashboard', verifyToken, isAdmin, async (req, res, next) => {
  */
 router.get('/users', verifyToken, isAdmin, async (req, res, next) => {
     try {
-        const users = await db.query(`
+        const { search, sortBy = 'created_at', sortOrder = 'DESC' } = req.query;
+
+        let query = `
             SELECT 
                 u.id, 
                 u.nombre, 
@@ -122,11 +124,39 @@ router.get('/users', verifyToken, isAdmin, async (req, res, next) => {
                 COALESCE(SUM(CASE WHEN r.status = 'sold' THEN 5.00 ELSE 0 END), 0) as total_gastado
             FROM users u
             LEFT JOIN raffles r ON r.purchased_by = u.id AND r.status = 'sold'
-            GROUP BY u.id
-            ORDER BY u.created_at DESC
-        `);
+        `;
 
-        res.json(users.rows);
+        const params = [];
+
+        // Add search filter
+        if (search && search.trim()) {
+            query += ` WHERE (
+                LOWER(u.nombre) LIKE LOWER($1) OR 
+                LOWER(u.apellido) LIKE LOWER($1) OR 
+                u.dni LIKE $1 OR 
+                u.celular LIKE $1
+            )`;
+            params.push(`%${search.trim()}%`);
+        }
+
+        query += ` GROUP BY u.id`;
+
+        // Add sorting
+        const validSortColumns = ['created_at', 'nombre', 'rifas_compradas', 'total_gastado'];
+        const validSortOrders = ['ASC', 'DESC'];
+
+        if (validSortColumns.includes(sortBy) && validSortOrders.includes(sortOrder.toUpperCase())) {
+            if (sortBy === 'rifas_compradas' || sortBy === 'total_gastado') {
+                query += ` ORDER BY ${sortBy} ${sortOrder}`;
+            } else {
+                query += ` ORDER BY u.${sortBy} ${sortOrder}`;
+            }
+        } else {
+            query += ` ORDER BY u.created_at DESC`;
+        }
+
+        const result = await db.query(query, params);
+        res.json(result.rows);
     } catch (error) {
         next(error);
     }
@@ -197,12 +227,13 @@ router.get('/user/:id', verifyToken, isAdmin, async (req, res, next) => {
 });
 
 /**
- * GET /api/admin/pending-verifications
- * Lista de pagos Yape pendientes de verificación
+ * GET /api/admin/pending-verifications - Get pending payment verifications with filters
  */
 router.get('/pending-verifications', verifyToken, isAdmin, async (req, res, next) => {
     try {
-        const pending = await db.query(`
+        const { search, status = 'pending_verification' } = req.query;
+
+        let query = `
             SELECT 
                 t.id,
                 t.amount,
@@ -210,6 +241,7 @@ router.get('/pending-verifications', verifyToken, isAdmin, async (req, res, next
                 t.yape_sender_name,
                 t.created_at,
                 t.confirmation_code,
+                t.status,
                 u.nombre,
                 u.apellido,
                 u.dni,
@@ -221,12 +253,37 @@ router.get('/pending-verifications', verifyToken, isAdmin, async (req, res, next
             FROM transactions t
             LEFT JOIN users u ON t.user_id = u.id
             LEFT JOIN transaction_raffles tr ON t.id = tr.transaction_id
-            WHERE t.status = 'pending_verification'
-            GROUP BY t.id, u.nombre, u.apellido, u.dni, u.celular
-            ORDER BY t.created_at DESC
-        `);
+        `;
 
-        res.json(pending.rows);
+        const params = [];
+        const conditions = [];
+
+        // Status filter
+        if (status && status !== 'all') {
+            conditions.push(`t.status = $${params.length + 1}`);
+            params.push(status);
+        }
+
+        // Search filter
+        if (search && search.trim()) {
+            conditions.push(`(
+                LOWER(u.nombre) LIKE LOWER($${params.length + 1}) OR 
+                LOWER(u.apellido) LIKE LOWER($${params.length + 1}) OR 
+                t.yape_operation_code LIKE $${params.length + 1} OR
+                t.confirmation_code LIKE $${params.length + 1}
+            )`);
+            params.push(`%${search.trim()}%`);
+        }
+
+        if (conditions.length > 0) {
+            query += ` WHERE ${conditions.join(' AND ')}`;
+        }
+
+        query += ` GROUP BY t.id, u.nombre, u.apellido, u.dni, u.celular
+                   ORDER BY t.created_at DESC`;
+
+        const result = await db.query(query, params);
+        res.json(result.rows);
     } catch (error) {
         next(error);
     }
