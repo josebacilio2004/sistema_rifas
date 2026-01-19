@@ -36,7 +36,7 @@ router.post('/purchase-batch', async (req, res, next) => {
         }
 
         // Create ONE transaction for ALL raffles
-        const total Amount = raffle_ids.length * 5.00;
+        const totalAmount = raffle_ids.length * 5.00;
         const transactionId = uuidv4();
 
         // Insert transaction (using first raffle_id as reference)

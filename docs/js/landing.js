@@ -94,12 +94,37 @@ function createCarouselSlides() {
         carouselTrack.innerHTML = '<div class="carousel-slide"><p>Cargando premios...</p></div>';
         return;
     }
-    carouselTrack.innerHTML = premios.map(premio => `
+    carouselTrack.innerHTML = premios.map((premio, index) => `
         <div class="carousel-slide">
-            <img src="${premio.imagen}" alt="${premio.titulo}" loading="lazy" 
-                 onerror="this.src='https://via.placeholder.com/450x450/667eea/ffffff?text=Premio'">
-            <h3>${premio.titulo}</h3>
-            <p>${premio.descripcion}</p>
+            <div class="prize-card">
+                <div class="prize-image-section">
+                    <div class="prize-image-wrapper">
+                        <img src="${premio.imagen}" alt="${premio.titulo}" loading="lazy" 
+                             onerror="this.src='https://via.placeholder.com/400x400/667eea/ffffff?text=Premio'">
+                    </div>
+                </div>
+                <div class="prize-content-section">
+                    <div class="prize-badge">
+                        🎁 Premio ${index + 1}
+                    </div>
+                    <h3>${premio.titulo}</h3>
+                    <p>${premio.descripcion}</p>
+                    <div class="prize-features">
+                        <div class="prize-feature">
+                            <span class="prize-feature-icon">✨</span>
+                            <span class="prize-feature-text">100% Original y Nuevo</span>
+                        </div>
+                        <div class="prize-feature">
+                            <span class="prize-feature-icon">📦</span>
+                            <span class="prize-feature-text">Entrega a Domicilio</span>
+                        </div>
+                        <div class="prize-feature">
+                            <span class="prize-feature-icon">🎯</span>
+                            <span class="prize-feature-text">Sorteo Transparente</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     `).join('');
 }

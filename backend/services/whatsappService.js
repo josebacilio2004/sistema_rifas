@@ -6,20 +6,33 @@ const axios = require('axios');
  */
 class WhatsAppService {
     constructor() {
+        // Token único para toda la app "Y si gano?"
         this.accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-        this.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-        this.adminPhone = process.env.WHATSAPP_ADMIN_NUMBER;  // Usar variable existente
+
+        // Phone Number IDs separados para cada función
+        this.adminPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID_ADMIN;  // +51 964 910 248
+        this.customerPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID_CUSTOMER;  // +51 972 107 074
+        this.adminPhone = process.env.WHATSAPP_ADMIN_NUMBER;
+
         this.apiVersion = 'v18.0';
         this.baseUrl = `https://graph.facebook.com/${this.apiVersion}`;
 
-        if (!this.accessToken || !this.phoneNumberId) {
-            console.warn('⚠️ WhatsApp credentials not configured');
+        if (!this.accessToken) {
+            console.warn('⚠️ WhatsApp access token not configured');
+        }
+
+        if (!this.adminPhoneNumberId) {
+            console.warn('⚠️ WhatsApp ADMIN phone number ID not configured');
+        }
+
+        if (!this.customerPhoneNumberId) {
+            console.warn('⚠️ WhatsApp CUSTOMER phone number ID not configured');
         }
     }
 
     /**
      * Enviar notificación de pago pendiente al admin
-     * Usa template "admin"
+     * Usa template "admin" con cuenta ADMIN
      */
     async notifyAdminNewPayment({
         customerName,
@@ -30,8 +43,8 @@ class WhatsAppService {
         yapeCode,
         yapeSender
     }) {
-        if (!this.accessToken || !this.phoneNumberId) {
-            console.log('⚠️ WhatsApp not configured, skipping notification');
+        if (!this.accessToken || !this.adminPhoneNumberId) {
+            console.log('⚠️ WhatsApp not configured, skipping admin notification');
             return null;
         }
 
@@ -62,7 +75,7 @@ class WhatsAppService {
             };
 
             const response = await axios.post(
-                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                `${this.baseUrl}/${this.adminPhoneNumberId}/messages`,
                 payload,
                 {
                     headers: {
@@ -87,6 +100,7 @@ class WhatsAppService {
 
     /**
      * Enviar detalles de Yape como mensaje de seguimiento
+     * Usa cuenta ADMIN
      */
     async sendYapeDetails(adminPhone, { yapeCode, yapeSender, raffleId }) {
         try {
@@ -103,7 +117,7 @@ class WhatsAppService {
             };
 
             await axios.post(
-                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                `${this.baseUrl}/${this.adminPhoneNumberId}/messages`,
                 payload,
                 {
                     headers: {
@@ -121,7 +135,7 @@ class WhatsAppService {
 
     /**
      * Enviar confirmación de compra al cliente
-     * Usa template "cliente"
+     * Usa template "cliente" con cuenta CLIENTE (número nuevo)
      */
     async notifyCustomerPurchaseApproved({
         customerPhone,
@@ -130,7 +144,7 @@ class WhatsAppService {
         amount,
         customerDNI
     }) {
-        if (!this.accessToken || !this.phoneNumberId || !customerPhone) {
+        if (!this.accessToken || !this.customerPhoneNumberId || !customerPhone) {
             console.log('⚠️ WhatsApp not configured or no customer phone, skipping notification');
             return null;
         }
@@ -161,7 +175,7 @@ class WhatsAppService {
             };
 
             const response = await axios.post(
-                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                `${this.baseUrl}/${this.customerPhoneNumberId}/messages`,
                 payload,
                 {
                     headers: {
@@ -194,7 +208,7 @@ class WhatsAppService {
             };
 
             const response = await axios.post(
-                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                `${this.baseUrl}/${this.customerPhoneNumberId}/messages`,
                 payload,
                 {
                     headers: {
@@ -214,7 +228,7 @@ class WhatsAppService {
      * Notificar al ganador del sorteo
      */
     async notifyWinner({ customerPhone, customerName, raffleId }) {
-        if (!this.accessToken || !this.phoneNumberId || !customerPhone) {
+        if (!this.accessToken || !this.customerPhoneNumberId || !customerPhone) {
             console.log('⚠️ WhatsApp not configured or no customer phone');
             return null;
         }
@@ -235,7 +249,7 @@ class WhatsAppService {
             };
 
             const response = await axios.post(
-                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                `${this.baseUrl}/${this.customerPhoneNumberId}/messages`,
                 payload,
                 {
                     headers: {
