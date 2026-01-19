@@ -249,15 +249,20 @@
     <section class="cta-section">
         <div class="cta-card">
             <h2>¿Listo para Ganar?</h2>
-            <p>Los números se están agotando. ¡No pierdas tu oportunidad!</p>
-            <a href="rifas.html" class="btn-cta btn-cta-large">
-                <span>Comprar Mi Rifa Ahora</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-            </a>
+            <p class="hero-subtitle">Participa ahora y gana increíbles premios. ¡La suerte está de tu lado!</p>
+            <div class="hero-cta">
+                <a href="rifas.html" class="btn-cta btn-cta-large">
+                    <span>Comprar Mi Rifa Ahora</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </a>
+                <button onclick="shareRaffle()" class="btn-share">
+                    <span>📤 Compartir</span>
+                </button>
+            </div>
             <p class="cta-note">Sorteo: 31 de Enero de 2026</p>
         </div>
     </section>
@@ -268,11 +273,34 @@
         <p>Consultas: <a href="https://wa.me/51906450533">WhatsApp</a></p>
     </footer>
 
+    <!-- Share Modal -->
+    <div id="share-modal" class="share-modal" onclick="closeShareModal()">
+        <div class="share-modal-content" onclick="event.stopPropagation()">
+            <h3>Compartir Rifa</h3>
+            <div class="share-buttons">
+                <button onclick="shareOnWhatsApp()" class="share-btn whatsapp">
+                    <span>💬 WhatsApp</span>
+                </button>
+                <button onclick="shareOnFacebook()" class="share-btn facebook">
+                    <span>📘 Facebook</span>
+                </button>
+                <button onclick="shareOnTwitter()" class="share-btn twitter">
+                    <span>🐦 Twitter</span>
+                </button>
+                <button onclick="copyShareLink()" class="share-btn copy">
+                    <span>🔗 Copiar Enlace</span>
+                </button>
+            </div>
+            <button onclick="closeShareModal()" class="close-modal">Cerrar</button>
+        </div>
+    </div>
+
     <script src="js/theme.js"></script>
     <script src="js/config.js"></script>
     <script src="js/landing.js"></script>
     <script src="js/winners.js"></script>
     <script src="js/public-stats.js"></script>
+    <script src="js/share.js"></script>
 </body>
 
 </html>
