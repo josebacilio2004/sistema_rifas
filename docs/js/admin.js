@@ -153,6 +153,9 @@ async function loadDashboardData() {
         // Load pending verifications
         await loadPendingVerifications();
 
+        // Load raffle sales status
+        await loadRaffleSalesStatus();
+
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         if (error.message.includes('Token')) {
