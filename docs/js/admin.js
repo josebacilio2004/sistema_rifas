@@ -33,9 +33,31 @@ function setupEventListeners() {
     refreshBtn.addEventListener('click', loadDashboardData);
 
     // Verifications refresh
-    const refreshVerificationsBtn = document.getElementById('refresh-verifications-btn');
-    if (refreshVerificationsBtn) {
-        refreshVerificationsBtn.addEventListener('click', loadPendingVerifications);
+    const refreshPendingBtn = document.getElementById('refresh-pending-btn');
+    if (refreshPendingBtn) {
+        refreshPendingBtn.addEventListener('click', loadVerificationsWithFilters);
+    }
+
+    // Search and filter event listeners
+    const usersSearch = document.getElementById('users-search');
+    const usersSort = document.getElementById('users-sort');
+    const verificationsSearch = document.getElementById('verifications-search');
+    const verificationsStatus = document.getElementById('verifications-status');
+
+    if (usersSearch) {
+        usersSearch.addEventListener('input', debounce(loadUsersWithFilters, 500));
+    }
+
+    if (usersSort) {
+        usersSort.addEventListener('change', loadUsersWithFilters);
+    }
+
+    if (verificationsSearch) {
+        verificationsSearch.addEventListener('input', debounce(loadVerificationsWithFilters, 500));
+    }
+
+    if (verificationsStatus) {
+        verificationsStatus.addEventListener('change', loadVerificationsWithFilters);
     }
 }
 
