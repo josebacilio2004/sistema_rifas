@@ -303,7 +303,7 @@ async function confirmPayment() {
         clearInterval(paymentTimer);
 
         // Show success
-        const message = `¡${data.raffle_count} rifa(s) registrada(s) por S/ ${data.total_amount.toFixed(2)}! Será verificada por un administrador`;
+        const message = `¡${data.raffle_count} rifa(s) registrada(s) por S/ ${data.total_amount.toFixed(2)}! Tu pago será validado en breve.`;
         showToast(message, 'success');
 
         // Clear cart

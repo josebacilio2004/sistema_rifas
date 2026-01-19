@@ -130,6 +130,8 @@ function showRafflesView() {
  */
 function displayUserInfo() {
     const userInfoDiv = document.getElementById('user-info');
+    const logoutBtn = document.getElementById('logout-btn');
+
     if (!userInfoDiv) return;
 
     if (currentUser) {
@@ -138,10 +140,18 @@ function displayUserInfo() {
             <p><strong>DNI:</strong> ${currentUser.dni}</p>
             <p><strong>Celular:</strong> ${currentUser.celular}</p>
         `;
+        // Show logout button
+        if (logoutBtn) {
+            logoutBtn.classList.remove('hidden');
+        }
     } else {
         userInfoDiv.innerHTML = `
             <p style="color: #fbbf24; font-weight: 600;">👤 Selecciona tus rifas. Te pediremos tus datos al finalizar.</p>
         `;
+        // Hide logout button
+        if (logoutBtn) {
+            logoutBtn.classList.add('hidden');
+        }
     }
 }
 
