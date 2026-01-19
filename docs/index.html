@@ -42,11 +42,14 @@
                 <span></span>
                 <span></span>
             </div>
-            <ul class="nav-menu">
-                <li><a href="#premios">Premios</a></li>
-                <li><a href="#como-participar">Cómo Participar</a></li>
-                <li><a href="rifas.html" class="btn-comprar">Comprar Rifa</a></li>
-            </ul>
+            <nav class="nav-links">
+                <a href="#premios">Premios</a>
+                <a href="#como-participar">Cómo Participar</a>
+                <a href="rifas.html" class="btn-nav">Ver Rifas</a>
+                <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema">
+                    <span id="theme-icon">☀️</span>
+                </button>
+            </nav>
         </div>
     </nav>
 
@@ -265,6 +268,7 @@
         <p>Consultas: <a href="https://wa.me/51906450533">WhatsApp</a></p>
     </footer>
 
+    <script src="js/theme.js"></script>
     <script src="js/config.js"></script>
     <script src="js/landing.js"></script>
     <script src="js/winners.js"></script>
