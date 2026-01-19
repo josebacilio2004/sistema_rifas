@@ -255,6 +255,48 @@ body {
     position: relative;
 }
 
+/* Decorative Brand Image */
+.hero-brand-image {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.floating-brand {
+    width: 180px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid var(--glass-border);
+    box-shadow:
+        0 0 40px rgba(99, 102, 241, 0.4),
+        0 0 80px rgba(139, 92, 246, 0.3),
+        0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: float-gentle 6s ease-in-out infinite;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+    padding: 8px;
+}
+
+@keyframes float-gentle {
+
+    0%,
+    100% {
+        transform: translateY(0px) scale(1);
+        box-shadow:
+            0 0 40px rgba(99, 102, 241, 0.4),
+            0 0 80px rgba(139, 92, 246, 0.3),
+            0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    50% {
+        transform: translateY(-20px) scale(1.05);
+        box-shadow:
+            0 0 60px rgba(99, 102, 241, 0.6),
+            0 0 100px rgba(139, 92, 246, 0.5),
+            0 30px 80px rgba(0, 0, 0, 0.4);
+    }
+}
+
 .hero-title {
     font-size: clamp(3rem, 8vw, 5.5rem);
     font-weight: 900;
@@ -817,6 +859,11 @@ body {
     .hero-subtitle {
         font-size: 1rem;
         margin-bottom: 30px;
+    }
+
+    .floating-brand {
+        width: 120px;
+        height: 120px;
     }
 
     /* Stats cards en columna */
