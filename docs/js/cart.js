@@ -193,11 +193,139 @@ async function handleCartCheckout() {
     }
 
     const userId = getCurrentUserId();
+
+    // If user is not registered, show registration modal
     if (!userId) {
-        showToast('Debes registrarte primero', 'warning');
+        showCheckoutRegistrationModal();
         return;
     }
 
+    // User is registered, proceed with checkout
+    await processCheckout(userId);
+}
+
+/**
+ * Show registration modal at checkout
+ */
+function showCheckoutRegistrationModal() {
+    const modal = document.createElement('div');
+    modal.id = 'checkout-registration-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close" onclick="closeCheckoutRegistrationModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+            
+            <div class="modal-header">
+                <h3 class="modal-title">Completa tus datos</h3>
+                <p class="modal-subtitle">Para finalizar tu compra, necesitamos tu información</p>
+            </div>
+            
+            <div class="modal-body">
+                <form id="checkout-registration-form" class="form">
+                    <div class="form-group">
+                        <label for="checkout-nombre" class="form-label">Nombre</label>
+                        <input type="text" id="checkout-nombre" class="form-input" placeholder="Tu nombre" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="checkout-apellido" class="form-label">Apellido</label>
+                        <input type="text" id="checkout-apellido" class="form-input" placeholder="Tu apellido" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="checkout-dni" class="form-label">DNI</label>
+                        <input type="text" id="checkout-dni" class="form-input" placeholder="8 dígitos" maxlength="8" pattern="[0-9]{8}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="checkout-celular" class="form-label">Celular</label>
+                        <input type="tel" id="checkout-celular" class="form-input" placeholder="+51987654321" pattern="\\+51[0-9]{9}" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-large">
+                        <span>Continuar al Pago</span>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Handle form submission
+    const form = document.getElementById('checkout-registration-form');
+    form.addEventListener('submit', handleCheckoutRegistration);
+
+    // Show modal
+    setTimeout(() => modal.classList.remove('hidden'), 10);
+}
+
+/**
+ * Close checkout registration modal
+ */
+function closeCheckoutRegistrationModal() {
+    const modal = document.getElementById('checkout-registration-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+/**
+ * Handle registration at checkout
+ */
+async function handleCheckoutRegistration(event) {
+    event.preventDefault();
+
+    const userData = {
+        nombre: document.getElementById('checkout-nombre').value.trim(),
+        apellido: document.getElementById('checkout-apellido').value.trim(),
+        dni: document.getElementById('checkout-dni').value.trim(),
+        celular: document.getElementById('checkout-celular').value.trim()
+    };
+
+    // Validate phone format
+    if (!userData.celular.startsWith('+51')) {
+        userData.celular = '+51' + userData.celular.replace(/^\+?51?/, '');
+    }
+
+    try {
+        const response = await API.registerUser(userData);
+        currentUser = response.user;
+
+        // Save to localStorage
+        localStorage.setItem('rifaUser', JSON.stringify(currentUser));
+        localStorage.setItem('user_id', currentUser.id);
+
+        // Update user info display
+        if (typeof displayUserInfo === 'function') {
+            displayUserInfo();
+        }
+
+        // Close modal
+        closeCheckoutRegistrationModal();
+
+        showToast('Registro exitoso. Procesando compra...', 'success');
+
+        // Proceed with checkout
+        await processCheckout(currentUser.id);
+    } catch (error) {
+        showToast(error.message || 'Error al registrar', 'error');
+    }
+}
+
+/**
+ * Process checkout (reserve raffles and open payment modal)
+ */
+async function processCheckout(userId) {
     try {
         // Reserve all raffles in cart
         const reservations = [];
@@ -222,9 +350,10 @@ async function handleCartCheckout() {
         const totalAmount = reservations.length * 5.00;
 
         // Open payment modal with confirmation code and raffle IDs
-        if (typeof showPaymentModal === 'function') {
-            showPaymentModal(
-                reservations.map(r => r.raffleId),  // Pass actual raffle IDs, not indices
+        if (typeof showPaymentModal === 'function' || typeof openPaymentModal === 'function') {
+            const paymentFunc = typeof showPaymentModal === 'function' ? showPaymentModal : openPaymentModal;
+            paymentFunc(
+                reservations.map(r => r.raffleId),
                 reservations[0].confirmationCode,
                 totalAmount
             );
@@ -241,6 +370,9 @@ async function handleCartCheckout() {
         console.error(error);
     }
 }
+
+// Make functions globally available
+window.closeCheckoutRegistrationModal = closeCheckoutRegistrationModal;
 
 // Initialize cart when DOM is ready
 if (document.readyState === 'loading') {

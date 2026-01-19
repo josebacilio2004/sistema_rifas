@@ -21,12 +21,18 @@ function init() {
         if (currentUser.id && !localStorage.getItem('user_id')) {
             localStorage.setItem('user_id', currentUser.id);
         }
-        showRafflesView();
     }
 
+    // ALWAYS show raffles view first (no registration required)
+    showRafflesView();
+
     // Setup event listeners
-    registrationForm.addEventListener('submit', handleRegistration);
-    logoutBtn.addEventListener('click', handleLogout);
+    if (registrationForm) {
+        registrationForm.addEventListener('submit', handleRegistration);
+    }
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
 
     console.log('App initialized');
 }
@@ -76,9 +82,19 @@ function handleLogout() {
     if (confirm('¿Estás seguro de que deseas cambiar de usuario?')) {
         currentUser = null;
         localStorage.removeItem('rifaUser');
-        localStorage.removeItem('user_id');  // Also clear user_id
-        showRegistrationView();
+        localStorage.removeItem('user_id');
+
+        // Clear cart on logout
+        if (typeof clearCart === 'function') {
+            clearCart();
+        }
+
         showToast('Sesión cerrada', 'info');
+
+        // Reload raffles to refresh state
+        if (typeof loadRaffles === 'function') {
+            loadRaffles();
+        }
     }
 }
 
@@ -90,7 +106,9 @@ function showRegistrationView() {
     rafflesSection.classList.add('hidden');
 
     // Clear form
-    registrationForm.reset();
+    if (registrationForm) {
+        registrationForm.reset();
+    }
 }
 
 /**
@@ -100,7 +118,7 @@ function showRafflesView() {
     registrationSection.classList.add('hidden');
     rafflesSection.classList.remove('hidden');
 
-    // Display user info
+    // Display user info if logged in
     displayUserInfo();
 
     // Load raffles
@@ -112,13 +130,19 @@ function showRafflesView() {
  */
 function displayUserInfo() {
     const userInfoDiv = document.getElementById('user-info');
-    if (!userInfoDiv || !currentUser) return;
+    if (!userInfoDiv) return;
 
-    userInfoDiv.innerHTML = `
-        <p><strong>Nombre:</strong> ${currentUser.nombre} ${currentUser.apellido}</p>
-        <p><strong>DNI:</strong> ${currentUser.dni}</p>
-        <p><strong>Celular:</strong> ${currentUser.celular}</p>
-    `;
+    if (currentUser) {
+        userInfoDiv.innerHTML = `
+            <p><strong>Usuario:</strong> ${currentUser.nombre} ${currentUser.apellido}</p>
+            <p><strong>DNI:</strong> ${currentUser.dni}</p>
+            <p><strong>Celular:</strong> ${currentUser.celular}</p>
+        `;
+    } else {
+        userInfoDiv.innerHTML = `
+            <p style="color: #fbbf24; font-weight: 600;">👤 Selecciona tus rifas. Te pediremos tus datos al finalizar.</p>
+        `;
+    }
 }
 
 /**
