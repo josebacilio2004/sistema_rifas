@@ -104,6 +104,33 @@
                 </div>
             </section>
 
+            <!-- Raffle Management Section -->
+            <section class="raffle-management-section">
+                <div class="section-header">
+                    <h2>🎯 Gestión de Sorteos</h2>
+                </div>
+                <div class="management-grid">
+                    <div class="management-card">
+                        <div class="card-icon">🔄</div>
+                        <h3>Reiniciar Rifas</h3>
+                        <p>Inicia un nuevo sorteo y resetea todas las rifas</p>
+                        <button id="reset-raffles-btn" class="btn-primary">Reiniciar Sistema</button>
+                    </div>
+                    <div class="management-card highlight">
+                        <div class="card-icon">🎲</div>
+                        <h3>Realizar Sorteo</h3>
+                        <p>Selecciona al ganador de forma aleatoria</p>
+                        <button id="draw-winner-btn" class="btn-success">Sortear Ganador</button>
+                    </div>
+                    <div class="management-card">
+                        <div class="card-icon">📜</div>
+                        <h3>Historial</h3>
+                        <p>Ver sorteos anteriores y ganadores</p>
+                        <button id="view-history-btn" class="btn-secondary">Ver Historial</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Pending Payments Verification Section -->
             <section class="pending-verifications-section">
                 <div class="section-header">
@@ -143,6 +170,97 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Reset Raffles Modal -->
+    <div id="reset-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>🔄 Reiniciar Sistema de Rifas</h2>
+            <p>Esto creará un nuevo sorteo y reseteará todas las rifas. El historial se mantendrá.</p>
+            <form id="reset-form">
+                <div class="form-group">
+                    <label for="total-raffles">Cantidad de rifas para el nuevo sorteo:</label>
+                    <input type="number" id="total-raffles" value="100" min="10" max="1000" required>
+                    <small>Mínimo: 10, Máximo: 1000</small>
+                </div>
+                <div class="warning-box">
+                    ⚠️ <strong>Advertencia:</strong> Esta acción reseteará todas las rifas actuales. Asegúrate de haber
+                    realizado el sorteo anterior.
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary">Confirmar Reinicio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lottery Drawing Modal -->
+    <div id="lottery-modal" class="modal hidden">
+        <div class="modal-content lottery-content">
+            <h2>🎲 Realizar Sorteo</h2>
+            <div id="lottery-stats" class="lottery-stats">
+                <div class="stat-item">
+                    <span class="label">Rifas Vendidas:</span>
+                    <span id="sold-count" class="value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Participantes:</span>
+                    <span id="participants-count" class="value">0</span>
+                </div>
+            </div>
+            <div id="lottery-animation" class="lottery-animation hidden">
+                <div class="number-spinner">
+                    <span id="spinning-number">--</span>
+                </div>
+                <p class="animation-text">Sorteando...</p>
+            </div>
+            <div id="winner-result" class="winner-result hidden">
+                <div class="winner-icon">🎉</div>
+                <h3>¡Ganador!</h3>
+                <div class="winner-card">
+                    <p><strong>Rifa #<span id="winner-raffle"></span></strong></p>
+                    <p>Nombre: <span id="winner-name"></span></p>
+                    <p>DNI: <span id="winner-dni"></span></p>
+                    <p>Teléfono: <span id="winner-phone"></span></p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary close-modal">Cerrar</button>
+                <button id="perform-draw-btn" class="btn-success">🎯 Realizar Sorteo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="modal hidden">
+        <div class="modal-content wide-modal">
+            <h2>📜 Historial de Sorteos</h2>
+            <div class="table-container">
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Sorteo #</th>
+                            <th>Fecha Inicio</th>
+                            <th>Fecha Fin</th>
+                            <th>Total Rifas</th>
+                            <th>Rifa Ganadora</th>
+                            <th>Ganador</th>
+                            <th>DNI</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="8" class="loading">Cargando historial...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary close-modal">Cerrar</button>
+            </div>
+        </div>
     </div>
 
     <!-- Modal for Carousel Item -->

@@ -174,6 +174,16 @@ body {
     letter-spacing: -0.5px;
 }
 
+.brand-logo {
+    height: 50px;
+    width: auto;
+    transition: transform 0.3s ease;
+}
+
+.brand-logo:hover {
+    transform: scale(1.05);
+}
+
 .nav-menu {
     display: flex;
     list-style: none;
@@ -755,6 +765,10 @@ body {
 
     .nav-brand h2 {
         font-size: 1rem;
+    }
+
+    .brand-logo {
+        height: 35px;
     }
 
     /* Mostrar hamburguesa, ocultar menú */
