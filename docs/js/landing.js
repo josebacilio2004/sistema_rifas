@@ -58,7 +58,14 @@ window.addEventListener('beforeunload', stopCounterUpdates);
 
 async function loadPremiosFromAPI() {
     try {
-        const response = await fetch(`${window.CONFIG?.API_URL || 'http://localhost:3000/api'}/carousel`);
+        const apiUrl = window.CONFIG?.API_URL || 'https://sistema-rifas-backend.onrender.com/api';
+        const response = await fetch(`${apiUrl}/carousel`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
         if (response.ok) {
             const items = await response.json();
             if (items.length > 0) {
@@ -73,13 +80,13 @@ async function loadPremiosFromAPI() {
             }
         }
     } catch (error) {
-        console.log('⚠️ Error cargando desde API, usando premios locales:', error.message);
+        // Silently fall back to local prizes when API is not available
+        console.log('ℹ️ Usando premios locales (API no disponible)');
     }
 
     // Usar premios locales
     premios = premiosLocales;
     totalSlides = premios.length;
-    console.log('✅ Usando premios locales');
 }
 
 function createCarouselSlides() {

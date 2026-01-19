@@ -170,8 +170,45 @@ body {
     font-weight: 800;
     background: linear-gradient(135deg, #fff 0%, var(--color-gold) 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: -0.5px;
+}
+
+.brand-text {
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fbbf24 0%, #fff 50%, #fbbf24 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.brand-question {
+    color: #fff;
+    -webkit-text-fill-color: #fff;
+    font-weight: 900;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    }
+
+    50% {
+        text-shadow: 0 0 20px rgba(251, 191, 36, 0.8), 0 0 30px rgba(251, 191, 36, 0.4);
+    }
+}
+
+.brand-text:hover {
+    transform: scale(1.05);
 }
 
 .brand-logo {
@@ -807,6 +844,10 @@ body {
 
     .nav-brand h2 {
         font-size: 1rem;
+    }
+
+    .brand-text {
+        font-size: 1.1rem;
     }
 
     .brand-logo {
