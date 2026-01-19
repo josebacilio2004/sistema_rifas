@@ -395,4 +395,122 @@ router.post('/reject-payment/:id', verifyToken, isAdmin, async (req, res, next) 
     }
 });
 
+/**
+ * POST /api/admin/reset-raffles
+ * Reinicia todas las rifas para un nuevo sorteo
+ */
+router.post('/reset-raffles', verifyToken, isAdmin, async (req, res, next) => {
+    try {
+        const { totalRaffles = 100 } = req.body;
+
+        if (totalRaffles < 10 || totalRaffles > 1000) {
+            return res.status(400).json({ error: 'La cantidad debe estar entre 10 y 1000' });
+        }
+
+        const result = await db.transaction(async (client) => {
+            await client.query(`UPDATE raffle_rounds SET status = 'completed', ended_at = NOW() WHERE status = 'active'`);
+
+            const roundResult = await client.query(`SELECT COALESCE(MAX(round_number), 0) + 1 as next_round FROM raffle_rounds`);
+            const nextRound = roundResult.rows[0].next_round;
+
+            const newRound = await client.query(
+                `INSERT INTO raffle_rounds (round_number, total_raffles, status) VALUES ($1, $2, 'active') RETURNING id`,
+                [nextRound, totalRaffles]
+            );
+
+            await client.query(`UPDATE raffles SET status = 'available', purchased_by = NULL, purchased_at = NULL, reserved_by = NULL, reserved_at = NULL, reserved_until = NULL`);
+
+            const currentCount = await client.query('SELECT COUNT(*) as count FROM raffles');
+            const current = parseInt(currentCount.rows[0].count);
+
+            if (totalRaffles > current) {
+                for (let i = current + 1; i <= totalRaffles; i++) {
+                    await client.query('INSERT INTO raffles (id, status) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING', [i, 'available']);
+                }
+            } else if (totalRaffles < current) {
+                await client.query('DELETE FROM raffles WHERE id > $1', [totalRaffles]);
+            }
+
+            return { round_number: nextRound, total_raffles: totalRaffles };
+        });
+
+        console.log('✅ Rifas reiniciadas:', result);
+        res.json({ success: true, message: `Sistema reiniciado para Sorteo #${result.round_number}`, ...result });
+    } catch (error) {
+        console.error('❌ Error resetting raffles:', error);
+        next(error);
+    }
+});
+
+/**
+ * POST /api/admin/draw-winner
+ * Realiza el sorteo y selecciona ganador
+ */
+router.post('/draw-winner', verifyToken, isAdmin, async (req, res, next) => {
+    try {
+        const result = await db.transaction(async (client) => {
+            const activeRound = await client.query(`SELECT id, round_number FROM raffle_rounds WHERE status = 'active' LIMIT 1`);
+            if (activeRound.rows.length === 0) throw new Error('No hay ronda activa');
+
+            const round = activeRound.rows[0];
+            const soldRaffles = await client.query(`SELECT id, purchased_by FROM raffles WHERE status = 'sold' ORDER BY id`);
+            if (soldRaffles.rows.length === 0) throw new Error('No hay rifas vendidas');
+
+            const randomIndex = Math.floor(Math.random() * soldRaffles.rows.length);
+            const winnerRaffle = soldRaffles.rows[randomIndex];
+
+            const winnerInfo = await client.query(`SELECT id, nombre, apellido, dni, celular FROM users WHERE id = $1`, [winnerRaffle.purchased_by]);
+            const winner = winnerInfo.rows[0];
+
+            await client.query(`UPDATE raffle_rounds SET winner_raffle_id = $1, winner_user_id = $2, status = 'completed', ended_at = NOW() WHERE id = $3`,
+                [winnerRaffle.id, winner.id, round.id]);
+
+            return {
+                round_number: round.round_number,
+                raffle_id: winnerRaffle.id,
+                winner: { id: winner.id, nombre: winner.nombre, apellido: winner.apellido, dni: winner.dni, celular: winner.celular },
+                total_participants: soldRaffles.rows.length
+            };
+        });
+
+        try {
+            const whatsappService = require('../services/whatsappService');
+            if (result.winner.celular) {
+                await whatsappService.notifyWinner({
+                    customerPhone: result.winner.celular,
+                    customerName: result.winner.nombre,
+                    raffleId: result.raffle_id
+                });
+            }
+        } catch (whatsappError) {
+            console.error('⚠️ WhatsApp failed:', whatsappError.message);
+        }
+
+        console.log('🎉 Ganador:', result);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('❌ Error drawing winner:', error);
+        next(error);
+    }
+});
+
+/**
+ * GET /api/admin/raffle-history
+ * Historial de sorteos
+ */
+router.get('/raffle-history', verifyToken, isAdmin, async (req, res, next) => {
+    try {
+        const history = await db.query(`
+            SELECT rr.*, u.nombre as winner_nombre, u.apellido as winner_apellido, u.dni as winner_dni
+            FROM raffle_rounds rr
+            LEFT JOIN users u ON rr.winner_user_id = u.id
+            ORDER BY rr.round_number DESC
+            LIMIT 50
+        `);
+        res.json(history.rows);
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;

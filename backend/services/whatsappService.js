@@ -209,6 +209,49 @@ class WhatsAppService {
             throw new Error(error.response?.data?.error?.message || error.message);
         }
     }
+
+    /**
+     * Notificar al ganador del sorteo
+     */
+    async notifyWinner({ customerPhone, customerName, raffleId }) {
+        if (!this.accessToken || !this.phoneNumberId || !customerPhone) {
+            console.log('⚠️ WhatsApp not configured or no customer phone');
+            return null;
+        }
+
+        try {
+            const phone = customerPhone.replace(/[^0-9]/g, '');
+
+            const message = `🎉 *¡FELICIDADES ${customerName.toUpperCase()}!* 🎉\n\n` +
+                `¡Has ganado el sorteo con la rifa #${raffleId}!\n\n` +
+                `Nos pondremos en contacto contigo pronto para coordinar la entrega de tu premio.\n\n` +
+                `¡Gracias por participar! 🎁`;
+
+            const payload = {
+                messaging_product: 'whatsapp',
+                to: phone,
+                type: 'text',
+                text: { body: message }
+            };
+
+            const response = await axios.post(
+                `${this.baseUrl}/${this.phoneNumberId}/messages`,
+                payload,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            console.log('✅ Winner notification sent:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('❌ Winner notification failed:', error.response?.data || error.message);
+            return null;
+        }
+    }
 }
 
 module.exports = new WhatsAppService();
