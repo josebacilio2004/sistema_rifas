@@ -182,9 +182,9 @@ async function loadUsers() {
             <td>
                 <div class="rifas-badge">
                     ${(user.numeros_rifas || []).filter(n => n !== null).map(num =>
-        `<span class="rifa-number">${num}</span>`
+        `<span class="rifa-number">#${num}</span>`
     ).join('')}
-                    ${(user.numeros_rifas || []).filter(n => n !== null).length === 0 ? '-' : ''}
+                    ${(user.numeros_rifas || []).filter(n => n !== null).length === 0 ? '<span class="no-rifas">Sin rifas</span>' : ''}
                 </div>
             </td>
             <td><strong>S/ ${parseFloat(user.total_gastado || 0).toFixed(2)}</strong></td>
