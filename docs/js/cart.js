@@ -244,7 +244,7 @@ function showCheckoutRegistrationModal() {
                     
                     <div class="form-group">
                         <label for="checkout-celular" class="form-label">Celular</label>
-                        <input type="tel" id="checkout-celular" class="form-input" placeholder="+51987654321" pattern="\\+51[0-9]{9}" required>
+                        <input type="tel" id="checkout-celular" class="form-input" placeholder="+51987654321" value="+51" pattern="\\+51[0-9]{9}" required>
                     </div>
                     
                     <button type="submit" class="btn btn-primary btn-large">
