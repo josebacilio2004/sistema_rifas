@@ -95,17 +95,14 @@ function hidePaymentModal() {
     closePaymentModal();
 }
 
-/**
- * Generate QR code for Yape payment
- */
 function generateQRCode(raffleId) {
     const qrCodeContainer = document.getElementById('qr-code');
 
     // Clear previous QR
     qrCodeContainer.innerHTML = '';
 
-    // Use static Yape QR image for +51 964 910 248
-    const qrImagePath = 'assets/yapeQR/QR.jpeg';
+    // Use static Yape QR image for +51 906 450 533
+    const qrImagePath = 'assets/yapeQR/QR_admin.jpeg';
 
     qrCodeContainer.innerHTML = `
         <div style="text-align: center;">
@@ -114,7 +111,7 @@ function generateQRCode(raffleId) {
                 Escanea el código QR con Yape
             </p>
             <p style="font-weight: 600; color: var(--color-primary);">
-                Número: +51 964 910 248
+                Número: +51 906 450 533
             </p>
             <p style="font-size: 0.875rem; margin-top: 0.5rem;">
                 Monto: S/ 5.00
