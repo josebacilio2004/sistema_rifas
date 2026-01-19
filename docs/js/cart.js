@@ -260,6 +260,24 @@ function showCheckoutRegistrationModal() {
 
     document.body.appendChild(modal);
 
+    // Protect +51 prefix from deletion
+    const phoneInput = document.getElementById('checkout-celular');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function (e) {
+            if (!this.value.startsWith('+51')) {
+                this.value = '+51';
+            }
+        });
+
+        phoneInput.addEventListener('keydown', function (e) {
+            const cursorPosition = this.selectionStart;
+            // Prevent deletion if cursor is at position 0, 1, 2, or 3 (within +51)
+            if (cursorPosition <= 3 && (e.key === 'Backspace' || e.key === 'Delete')) {
+                e.preventDefault();
+            }
+        });
+    }
+
     // Handle form submission
     const form = document.getElementById('checkout-registration-form');
     form.addEventListener('submit', handleCheckoutRegistration);
