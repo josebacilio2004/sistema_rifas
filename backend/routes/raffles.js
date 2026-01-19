@@ -44,7 +44,11 @@ router.get('/', async (req, res, next) => {
             return raffle;
         });
 
-        res.json({ raffles });
+        // Check sales status
+        const configResult = await db.query('SELECT sales_enabled FROM raffle_system_config LIMIT 1');
+        const salesEnabled = configResult.rows.length > 0 ? configResult.rows[0].sales_enabled : true;
+
+        res.json({ raffles, sales_enabled: salesEnabled });
     } catch (error) {
         next(error);
     }
