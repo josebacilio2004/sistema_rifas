@@ -543,7 +543,7 @@ router.post('/:id/purchase', async (req, res, next) => {
                         `ðŸ‘¤ Yapero: ${yape_sender_name}\n\n` +
                         `Verifica en admin panel`;
 
-                    await whatsappService.sendMessage('+51964910248', adminMessage);
+                    await whatsappService.sendMessage('+51906450533', adminMessage);
                     console.log('âœ… Admin WhatsApp sent');
                 }
             } catch (whatsappError) {
