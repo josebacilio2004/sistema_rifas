@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../services/database');
-const { authenticateAdmin } = require('../middleware/auth');
+const { verifyToken, isAdmin } = require('../middleware/auth');
 
 // GET /api/analytics/sales-trend
-router.get('/sales-trend', authenticateAdmin, async (req, res) => {
+router.get('/sales-trend', verifyToken, isAdmin, async (req, res) => {
     try {
         const { days = 30 } = req.query;
 
@@ -28,7 +28,7 @@ router.get('/sales-trend', authenticateAdmin, async (req, res) => {
 });
 
 // GET /api/analytics/conversion
-router.get('/conversion', authenticateAdmin, async (req, res) => {
+router.get('/conversion', verifyToken, isAdmin, async (req, res) => {
     try {
         const result = await db.query(`
             SELECT 
@@ -49,7 +49,7 @@ router.get('/conversion', authenticateAdmin, async (req, res) => {
 });
 
 // GET /api/analytics/top-buyers
-router.get('/top-buyers', authenticateAdmin, async (req, res) => {
+router.get('/top-buyers', verifyToken, isAdmin, async (req, res) => {
     try {
         const { limit = 5 } = req.query;
 
@@ -74,7 +74,7 @@ router.get('/top-buyers', authenticateAdmin, async (req, res) => {
 });
 
 // GET /api/analytics/hourly-distribution
-router.get('/hourly-distribution', authenticateAdmin, async (req, res) => {
+router.get('/hourly-distribution', verifyToken, isAdmin, async (req, res) => {
     try {
         const result = await db.query(`
             SELECT 
