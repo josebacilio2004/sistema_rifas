@@ -127,6 +127,53 @@
                 </div>
             </section>
 
+            <!-- Reports Section -->
+            <section class="reports-section">
+                <div class="section-header">
+                    <h2>📄 Reportes y Exportación</h2>
+                </div>
+
+                <div class="reports-grid">
+                    <div class="report-card">
+                        <h3>👥 Reporte de Usuarios</h3>
+                        <p>Exporta la lista completa de usuarios registrados con sus compras</p>
+                        <button class="btn-primary" onclick="exportUsersCSV()">
+                            📊 Descargar CSV
+                        </button>
+                    </div>
+
+                    <div class="report-card">
+                        <h3>💰 Reporte de Transacciones</h3>
+                        <p>Exporta todas las transacciones con filtros personalizados</p>
+                        <div class="report-filters">
+                            <select id="transaction-status-filter">
+                                <option value="">Todos los estados</option>
+                                <option value="pending_verification">Pendientes</option>
+                                <option value="approved">Aprobados</option>
+                                <option value="rejected">Rechazados</option>
+                            </select>
+                            <input type="date" id="transaction-date-from" placeholder="Desde">
+                            <input type="date" id="transaction-date-to" placeholder="Hasta">
+                        </div>
+                        <button class="btn-primary" onclick="exportTransactionsCSV()">
+                            📊 Descargar CSV
+                        </button>
+                    </div>
+
+                    <div class="report-card">
+                        <h3>📈 Reporte de Ventas (PDF)</h3>
+                        <p>Genera un reporte detallado en formato PDF</p>
+                        <div class="report-filters">
+                            <input type="date" id="sales-date-from" placeholder="Desde">
+                            <input type="date" id="sales-date-to" placeholder="Hasta">
+                        </div>
+                        <button class="btn-success" onclick="exportSalesPDF()">
+                            📄 Generar PDF
+                        </button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Users Table -->
             <section class="users-section">
                 <div class="section-header">

@@ -966,3 +966,62 @@ if (analyticsPeriodSelect) {
         loadSalesTrend();
     });
 }
+
+// ============================================
+// REPORTS EXPORT
+// ============================================
+
+function exportUsersCSV() {
+    const url = `${CONFIG.API_URL}/reports/users/csv`;
+    downloadFile(url, 'usuarios.csv');
+}
+
+function exportTransactionsCSV() {
+    const status = document.getElementById('transaction-status-filter').value;
+    const dateFrom = document.getElementById('transaction-date-from').value;
+    const dateTo = document.getElementById('transaction-date-to').value;
+
+    let url = `${CONFIG.API_URL}/reports/transactions/csv?`;
+    if (status) url += `status=${status}&`;
+    if (dateFrom) url += `date_from=${dateFrom}&`;
+    if (dateTo) url += `date_to=${dateTo}&`;
+
+    downloadFile(url, 'transacciones.csv');
+}
+
+function exportSalesPDF() {
+    const dateFrom = document.getElementById('sales-date-from').value;
+    const dateTo = document.getElementById('sales-date-to').value;
+
+    let url = `${CONFIG.API_URL}/reports/sales/pdf?`;
+    if (dateFrom) url += `date_from=${dateFrom}&`;
+    if (dateTo) url += `date_to=${dateTo}&`;
+
+    downloadFile(url, 'reporte-ventas.pdf');
+}
+
+function downloadFile(url, filename) {
+    fetch(url, {
+        headers: {
+            'Authorization': `Bearer ${state.token}`
+        }
+    })
+        .then(response => {
+            if (!response.ok) throw new Error('Error al descargar el archivo');
+            return response.blob();
+        })
+        .then(blob => {
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+        })
+        .catch(error => {
+            console.error('Error downloading file:', error);
+            alert('Error al descargar el archivo');
+        });
+}
