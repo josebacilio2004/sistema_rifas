@@ -91,6 +91,9 @@ function handleLogout() {
 
         showToast('Sesión cerrada', 'info');
 
+        // Update UI immediately
+        displayUserInfo();
+
         // Reload raffles to refresh state
         if (typeof loadRaffles === 'function') {
             loadRaffles();
