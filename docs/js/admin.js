@@ -185,6 +185,70 @@ async function loadStats() {
     totalRecaudadoEl.textContent = `S/ ${totalRecaudado.toFixed(2)}`;
 }
 
+// Load raffle sales status
+async function loadRaffleSalesStatus() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/admin/raffle-status`, {
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Error loading raffle status');
+
+        const data = await response.json();
+        const statusEl = document.getElementById('sales-status');
+        const toggleBtn = document.getElementById('toggle-sales-btn');
+
+        if (statusEl) {
+            statusEl.textContent = data.sales_enabled ? '✅ Habilitado' : '❌ Deshabilitado';
+            statusEl.style.color = data.sales_enabled ? '#10b981' : '#ef4444';
+        }
+
+        if (toggleBtn) {
+            toggleBtn.textContent = data.sales_enabled ? 'Deshabilitar Ventas' : 'Habilitar Ventas';
+            toggleBtn.className = data.sales_enabled ? 'btn-danger' : 'btn-success';
+        }
+
+        // Store current status
+        state.salesEnabled = data.sales_enabled;
+    } catch (error) {
+        console.error('Error loading raffle sales status:', error);
+    }
+}
+
+// Toggle raffle sales
+async function toggleRaffleSales() {
+    try {
+        const newStatus = !state.salesEnabled;
+        const confirmMsg = newStatus
+            ? '¿Estás seguro de HABILITAR las ventas de rifas?'
+            : '¿Estás seguro de DESHABILITAR las ventas de rifas? Los clientes no podrán comprar rifas.';
+
+        if (!confirm(confirmMsg)) return;
+
+        const response = await fetch(`${CONFIG.API_URL}/admin/toggle-raffle-sales`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${state.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ enabled: newStatus })
+        });
+
+        if (!response.ok) throw new Error('Error toggling sales');
+
+        const data = await response.json();
+        alert(data.message);
+
+        // Reload status
+        await loadRaffleSalesStatus();
+    } catch (error) {
+        console.error('Error toggling raffle sales:', error);
+        alert('Error al cambiar el estado de ventas');
+    }
+}
+
 // Debounce utility function
 function debounce(func, wait) {
     let timeout;
