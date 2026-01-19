@@ -598,14 +598,18 @@ router.post('/toggle-raffle-sales', verifyToken, isAdmin, async (req, res, next)
     try {
         const { enabled } = req.body;
 
+        console.log('Toggle raffle sales:', { enabled });
+
         if (typeof enabled !== 'boolean') {
             return res.status(400).json({ error: 'enabled must be a boolean' });
         }
 
-        await db.query(
-            'UPDATE raffle_system_config SET sales_enabled = $1, updated_by = $2 WHERE id = 1',
-            [enabled, req.user.id]
+        const result = await db.query(
+            'UPDATE raffle_system_config SET sales_enabled = $1 WHERE id = 1 RETURNING *',
+            [enabled]
         );
+
+        console.log('Update result:', result.rows);
 
         res.json({
             success: true,
@@ -613,7 +617,8 @@ router.post('/toggle-raffle-sales', verifyToken, isAdmin, async (req, res, next)
             message: enabled ? 'Ventas de rifas habilitadas' : 'Ventas de rifas deshabilitadas'
         });
     } catch (error) {
-        next(error);
+        console.error('Toggle error:', error);
+        res.status(500).json({ error: 'Error al cambiar estado', details: error.message });
     }
 });
 
