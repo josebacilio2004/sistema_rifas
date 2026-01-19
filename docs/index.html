@@ -86,6 +86,57 @@
         </div>
     </section>
 
+    <!-- Public Statistics Section -->
+    <section class="public-stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <h3 id="stat-participants">0</h3>
+                        <p>Participantes</p>
+                    </div>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon">🎟️</div>
+                    <div class="stat-content">
+                        <h3 id="stat-sold">0</h3>
+                        <p>Rifas Vendidas</p>
+                    </div>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-content">
+                        <h3 id="stat-available">0</h3>
+                        <p>Rifas Disponibles</p>
+                    </div>
+                </div>
+
+                <div class="stat-item highlight" id="last-winner-stat" style="display: none;">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-content">
+                        <h3 id="winner-name">-</h3>
+                        <p>Último Ganador</p>
+                        <small id="winner-details"></small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-section">
+                <div class="progress-header">
+                    <h3>Progreso del Sorteo</h3>
+                    <span id="progress-percentage">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+                <p class="progress-text">¡Quedan pocas rifas disponibles!</p>
+            </div>
+        </div>
+    </section>
+
     <!-- Carousel Section with Glassmorphism -->
     <section id="premios" class="carousel-section">
         <h2 class="section-title">Premios del Sorteo</h2>
@@ -217,6 +268,7 @@
     <script src="js/config.js"></script>
     <script src="js/landing.js"></script>
     <script src="js/winners.js"></script>
+    <script src="js/public-stats.js"></script>
 </body>
 
 </html>
