@@ -171,12 +171,12 @@
     }
 
     .brand-logo-rifas {
-        width: 40px;
-        height: 40px;
+        width: 30px;
+        height: 30px;
     }
 
     .brand-text-rifas {
-        font-size: 1.2rem;
+        font-size: 1rem;
     }
 
     .navbar-rifas .nav-menu {
@@ -197,16 +197,16 @@
     }
 
     .brand-logo-rifas {
-        width: 35px;
-        height: 35px;
+        width: 28px;
+        height: 28px;
     }
 
     .brand-text-rifas {
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
 
     .navbar-rifas .nav-menu a {
         padding: 6px 12px;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
     }
 }
