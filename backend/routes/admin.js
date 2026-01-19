@@ -240,7 +240,7 @@ router.post('/approve-payment/:id', verifyToken, isAdmin, async (req, res, next)
     try {
         const { id } = req.params;
 
-        await db.transaction(async (client) => {
+        const transactionResult = await db.transaction(async (client) => {
             // Get transaction info
             const txResult = await client.query(
                 'SELECT user_id, raffle_id, status FROM transactions WHERE id = $1',
@@ -304,17 +304,17 @@ router.post('/approve-payment/:id', verifyToken, isAdmin, async (req, res, next)
         try {
             const whatsappService = require('../services/whatsappService');
 
-            if (result.user_id) {
+            if (transactionResult.user_id) {
                 // Get user info
                 const userResult = await db.query(
                     'SELECT nombre, apellido, dni, celular FROM users WHERE id = $1',
-                    [result.user_id]
+                    [transactionResult.user_id]
                 );
 
                 if (userResult.rows.length > 0) {
                     const user = userResult.rows[0];
-                    const raffleNumbers = result.raffle_ids.join(', ');
-                    const totalAmount = result.raffle_ids.length * 5.00;
+                    const raffleNumbers = transactionResult.raffle_ids.join(', ');
+                    const totalAmount = transactionResult.raffle_ids.length * 5.00;
 
                     await whatsappService.notifyCustomerPurchaseApproved({
                         customerPhone: user.celular,
