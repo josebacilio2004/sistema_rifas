@@ -51,6 +51,12 @@ function toggleCartPanel() {
  * Add raffle to cart
  */
 function addToCart(raffleId) {
+    // Check if sales are enabled
+    if (window.SALES_ENABLED === false) {
+        alert('Las ventas de rifas están actualmente deshabilitadas. El sorteo ya se realizó o está en proceso.');
+        return false;
+    }
+
     // Check if already in cart
     if (cart.includes(raffleId)) {
         showToast(`La rifa N° ${raffleId} ya está en tu carrito`, 'warning');
