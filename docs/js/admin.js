@@ -384,20 +384,38 @@ async function loadPendingVerifications() {
             return;
         }
 
-        verificationsTableBody.innerHTML = verifications.map(v => `
-            <tr>
-                <td>${new Date(v.created_at).toLocaleString('es-PE')}</td>
-                <td>${v.nombre || 'Guest'} ${v.apellido || ''}<br><small>${v.celular || 'N/A'}</small></td>
-                <td><strong>Rifas: ${v.raffle_ids && Array.isArray(v.raffle_ids) && v.raffle_ids.length > 0 ? v.raffle_ids.filter(id => id !== null).join(', ') : (v.raffle_id || 'N/A')}</strong></td>
-                <td><strong>S/ ${parseFloat(v.amount).toFixed(2)}</strong></td>
-                <td><code>${v.yape_operation_code}</code></td>
-                <td>${v.yape_sender_name}</td>
-                <td>
-                    <button class="btn-approve" onclick="approvePayment('${v.id}')">✓ Aprobar</button>
-                    <button class="btn-reject" onclick="rejectPayment('${v.id}')">✗ Rechazar</button>
-                </td>
-            </tr>
-        `).join('');
+        verificationsTableBody.innerHTML = verifications.map(v => {
+            // Parse raffle IDs and create badges
+            let raffleIds = [];
+            if (v.raffle_ids && Array.isArray(v.raffle_ids)) {
+                raffleIds = v.raffle_ids.filter(id => id !== null);
+            } else if (v.raffle_id) {
+                raffleIds = [v.raffle_id];
+            }
+
+            const raffleBadges = raffleIds.length > 0
+                ? raffleIds.map(id => `<span class="rifa-number">#${id}</span>`).join('')
+                : '<span class="no-rifas">N/A</span>';
+
+            return `
+                <tr>
+                    <td>${new Date(v.created_at).toLocaleString('es-PE')}</td>
+                    <td>${v.nombre || 'Guest'} ${v.apellido || ''}<br><small>${v.celular || 'N/A'}</small></td>
+                    <td>
+                        <div class="rifas-badge">
+                            ${raffleBadges}
+                        </div>
+                    </td>
+                    <td><strong>S/ ${parseFloat(v.amount).toFixed(2)}</strong></td>
+                    <td><code>${v.yape_operation_code}</code></td>
+                    <td>${v.yape_sender_name}</td>
+                    <td>
+                        <button class="btn-approve" onclick="approvePayment('${v.id}')">✓ Aprobar</button>
+                        <button class="btn-reject" onclick="rejectPayment('${v.id}')">✗ Rechazar</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     } catch (error) {
         console.error('Error loading pending verifications:', error);
         verificationsTableBody.innerHTML = '<tr><td colspan="7" class="loading">Error al cargar</td></tr>';
