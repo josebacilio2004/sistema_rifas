@@ -14,6 +14,11 @@ async function loadRaffles() {
     try {
         const response = await API.getRaffles();
         rafflesData = response.raffles;
+
+        // Store sales status globally
+        window.SALES_ENABLED = response.sales_enabled !== false;
+        console.log('🔍 Sales enabled:', window.SALES_ENABLED);
+
         renderRaffles();
 
         // Start auto-refresh
@@ -47,14 +52,27 @@ function createRaffleElement(raffle) {
     div.setAttribute('data-id', raffle.id);
     div.innerHTML = `<span>${raffle.id}</span>`;
 
-    // Add click handler for available raffles
-    if (raffle.status === 'available') {
+    // Check if sales are disabled
+    const salesDisabled = window.SALES_ENABLED === false;
+
+    // Add click handler for available raffles ONLY if sales are enabled
+    if (raffle.status === 'available' && !salesDisabled) {
         div.addEventListener('click', () => handleRaffleClick(raffle.id));
 
         // Check if in cart and mark as selected
         if (typeof cart !== 'undefined' && cart.includes(raffle.id)) {
             div.classList.add('selected');
         }
+    } else if (raffle.status === 'available' && salesDisabled) {
+        // If sales are disabled, add disabled styling and alert
+        div.classList.add('disabled-sales');
+        div.style.opacity = '0.5';
+        div.style.cursor = 'not-allowed';
+        div.style.filter = 'grayscale(50%)';
+        div.addEventListener('click', (e) => {
+            e.preventDefault();
+            alert('Las ventas de rifas están actualmente deshabilitadas. El sorteo ya se realizó o está en proceso.');
+        });
     }
 
     // Add title for reserved raffles
