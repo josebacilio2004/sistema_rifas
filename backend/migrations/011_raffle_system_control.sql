@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS raffle_system_config (
     id SERIAL PRIMARY KEY,
     sales_enabled BOOLEAN DEFAULT true,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by INTEGER REFERENCES admins(id)
+    updated_by INTEGER
 );
 
 -- Insert default configuration
