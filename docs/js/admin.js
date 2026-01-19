@@ -266,11 +266,16 @@ async function loadVerificationsWithFilters() {
         if (!verificationsTable) return;
 
         if (verifications.length === 0) {
-            verificationsTable.innerHTML = '<tr><td colspan="7" class="loading">No hay verificaciones</td></tr>';
+            verificationsTable.innerHTML = '<tr><td colspan="8" class="loading">No hay verificaciones</td></tr>';
             return;
         }
 
-        verificationsTable.innerHTML = verifications.map(v => `
+        verificationsTable.innerHTML = verifications.map(v => {
+            const createdDate = new Date(v.created_at);
+            const dateStr = createdDate.toLocaleDateString('es-PE');
+            const timeStr = createdDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+
+            return `
             <tr>
                 <td>${v.nombre} ${v.apellido}</td>
                 <td>${v.celular}</td>
@@ -283,11 +288,18 @@ async function loadVerificationsWithFilters() {
                     </div>
                 </td>
                 <td>
+                    <div style="font-size: 0.9rem;">
+                        <div>${dateStr}</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">${timeStr}</div>
+                    </div>
+                </td>
+                <td>
                     <button class="btn-approve" onclick="approvePayment('${v.id}', ${JSON.stringify(v.raffle_ids).replace(/"/g, '&quot;')})">✅ Aprobar</button>
                     <button class="btn-reject" onclick="rejectPayment('${v.id}', ${JSON.stringify(v.raffle_ids).replace(/"/g, '&quot;')})">❌ Rechazar</button>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     } catch (error) {
         console.error('Error loading verifications with filters:', error);
     }
