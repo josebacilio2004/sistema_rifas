@@ -2,6 +2,7 @@
 // Checks if raffle sales are enabled and disables UI accordingly
 
 let salesEnabled = true;
+let disableInterval = null;
 
 // Check sales status from backend
 async function checkRaffleSalesStatus() {
@@ -22,11 +23,13 @@ async function checkRaffleSalesStatus() {
         salesEnabled = data.sales_enabled !== false;
         console.log('✅ Sales enabled:', salesEnabled);
 
-        // If sales are disabled, block the UI
+        // If sales are disabled, block the UI continuously
         if (!salesEnabled) {
             console.log('🚫 Disabling raffle selection...');
-            disableRaffleSelection();
             showSalesDisabledMessage();
+            startContinuousDisable();
+        } else {
+            stopContinuousDisable();
         }
 
         return salesEnabled;
@@ -37,21 +40,51 @@ async function checkRaffleSalesStatus() {
     }
 }
 
+// Continuously disable raffles (in case they get re-enabled by other scripts)
+function startContinuousDisable() {
+    // Initial disable
+    disableRaffleSelection();
+
+    // Clear any existing interval
+    if (disableInterval) {
+        clearInterval(disableInterval);
+    }
+
+    // Re-disable every 500ms to prevent other scripts from re-enabling
+    disableInterval = setInterval(() => {
+        disableRaffleSelection();
+    }, 500);
+}
+
+function stopContinuousDisable() {
+    if (disableInterval) {
+        clearInterval(disableInterval);
+        disableInterval = null;
+    }
+}
+
 // Disable all raffle selection
 function disableRaffleSelection() {
     // Disable all raffle number buttons
     const raffleNumbers = document.querySelectorAll('.raffle-number:not(.sold)');
-    console.log(`🔒 Disabling ${raffleNumbers.length} raffle numbers`);
 
     raffleNumbers.forEach(raffle => {
-        raffle.classList.add('disabled-sales');
+        if (!raffle.classList.contains('disabled-sales')) {
+            raffle.classList.add('disabled-sales');
+        }
         raffle.style.opacity = '0.5';
         raffle.style.cursor = 'not-allowed';
         raffle.style.pointerEvents = 'none';
         raffle.style.filter = 'grayscale(50%)';
 
-        // Remove click event
-        raffle.onclick = null;
+        // Remove onclick attribute
+        raffle.removeAttribute('onclick');
+        raffle.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            alert('Las ventas de rifas están actualmente deshabilitadas. El sorteo ya se realizó o está en proceso.');
+            return false;
+        };
     });
 
     // Disable purchase button if exists
@@ -65,8 +98,10 @@ function disableRaffleSelection() {
 
 // Show sales disabled message
 function showSalesDisabledMessage() {
+    if (document.getElementById('sales-disabled-banner')) return;
+
     const container = document.querySelector('.raffles-grid')?.parentElement || document.querySelector('.container');
-    if (!container || document.getElementById('sales-disabled-banner')) return;
+    if (!container) return;
 
     const banner = document.createElement('div');
     banner.id = 'sales-disabled-banner';
@@ -93,20 +128,23 @@ function showSalesDisabledMessage() {
     `;
 
     // Add animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
+    if (!document.getElementById('sales-disabled-animation')) {
+        const style = document.createElement('style');
+        style.id = 'sales-disabled-animation';
+        style.textContent = `
+            @keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    `;
-    document.head.appendChild(style);
+        `;
+        document.head.appendChild(style);
+    }
 
     // Insert at the top of raffles section
     const rafflesSection = document.getElementById('raffles-section');
@@ -120,10 +158,10 @@ function showSalesDisabledMessage() {
 // Check status on page load - wait for raffles to load first
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(checkRaffleSalesStatus, 1000);
+        setTimeout(checkRaffleSalesStatus, 1500);
     });
 } else {
-    setTimeout(checkRaffleSalesStatus, 1000);
+    setTimeout(checkRaffleSalesStatus, 1500);
 }
 
 // Export for use in other scripts
