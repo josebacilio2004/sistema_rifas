@@ -91,7 +91,7 @@ router.get('/dashboard', verifyToken, isAdmin, async (req, res, next) => {
                 (SELECT COUNT(*) FROM raffles WHERE status = 'sold') as rifas_vendidas,
                 (SELECT COUNT(*) FROM raffles WHERE status = 'available') as rifas_disponibles,
                 (SELECT COUNT(*) FROM raffles WHERE status = 'reserved') as rifas_reservadas,
-                (SELECT SUM(amount) FROM transactions WHERE status = 'completed') as total_recaudado
+                (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE status = 'approved') as total_recaudado
         `);
 
         res.json(stats.rows[0]);
