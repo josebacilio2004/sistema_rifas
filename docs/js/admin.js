@@ -59,6 +59,12 @@ function setupEventListeners() {
     if (verificationsStatus) {
         verificationsStatus.addEventListener('change', loadVerificationsWithFilters);
     }
+
+    // Toggle sales button
+    const toggleSalesBtn = document.getElementById('toggle-sales-btn');
+    if (toggleSalesBtn) {
+        toggleSalesBtn.addEventListener('click', toggleRaffleSales);
+    }
 }
 
 function checkAuth() {
