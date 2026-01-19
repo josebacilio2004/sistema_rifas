@@ -113,6 +113,29 @@
         </div>
     </section>
 
+    <!-- Winners Gallery Section -->
+    <section class="winners-gallery">
+        <div class="container">
+            <h2 class="section-title">🏆 Nuestros Ganadores</h2>
+            <p class="section-subtitle">Conoce a las personas que ya ganaron con nosotros</p>
+
+            <div class="winners-carousel">
+                <button class="carousel-btn prev" id="winners-prev" aria-label="Anterior ganador">‹</button>
+                <div class="winners-track" id="winners-track">
+                    <!-- Winners will be loaded here -->
+                    <div class="winner-slide">
+                        <div class="winner-card">
+                            <div class="winner-placeholder">Cargando ganadores...</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="carousel-btn next" id="winners-next" aria-label="Siguiente ganador">›</button>
+            </div>
+
+            <div class="carousel-dots" id="winners-dots"></div>
+        </div>
+    </section>
+
     <!-- How to Participate Section -->
     <section id="como-participar" class="info-section">
         <h2 class="section-title">¿Cómo Participar?</h2>
@@ -193,6 +216,7 @@
 
     <script src="js/config.js"></script>
     <script src="js/landing.js"></script>
+    <script src="js/winners.js"></script>
 </body>
 
 </html>
