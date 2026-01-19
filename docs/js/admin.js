@@ -458,3 +458,254 @@ async function rejectPayment(transactionId) {
 // Make functions global
 window.approvePayment = approvePayment;
 window.rejectPayment = rejectPayment;
+
+// === NEW ADMIN FUNCTIONALITIES ===
+
+// Modal elements
+const resetModal = document.getElementById('reset-modal');
+const lotteryModal = document.getElementById('lottery-modal');
+const historyModal = document.getElementById('history-modal');
+
+// Buttons
+const resetRafflesBtn = document.getElementById('reset-raffles-btn');
+const drawWinnerBtn = document.getElementById('draw-winner-btn');
+const viewHistoryBtn = document.getElementById('view-history-btn');
+const performDrawBtn = document.getElementById('perform-draw-btn');
+
+// Forms
+const resetForm = document.getElementById('reset-form');
+
+// Setup event listeners for new features
+if (resetRafflesBtn) {
+    resetRafflesBtn.addEventListener('click', openResetModal);
+}
+
+if (drawWinnerBtn) {
+    drawWinnerBtn.addEventListener('click', openLotteryModal);
+}
+
+if (viewHistoryBtn) {
+    viewHistoryBtn.addEventListener('click', openHistoryModal);
+}
+
+if (resetForm) {
+    resetForm.addEventListener('submit', handleResetRaffles);
+}
+
+if (performDrawBtn) {
+    performDrawBtn.addEventListener('click', performLotteryDraw);
+}
+
+// Close modal buttons
+document.querySelectorAll('.close-modal').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.target.closest('.modal').classList.add('hidden');
+    });
+});
+
+// === RESET RAFFLES ===
+
+function openResetModal() {
+    resetModal.classList.remove('hidden');
+}
+
+async function handleResetRaffles(e) {
+    e.preventDefault();
+
+    const totalRaffles = parseInt(document.getElementById('total-raffles').value);
+
+    if (!confirm(`¿Estás seguro de reiniciar el sistema con ${totalRaffles} rifas? Esta acción reseteará todas las rifas actuales.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/admin/reset-raffles`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${state.token}`
+            },
+            body: JSON.stringify({ totalRaffles })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al reiniciar rifas');
+        }
+
+        const data = await response.json();
+        alert(`✅ ${data.message}\n\nSorteo #${data.round_number}\nTotal rifas: ${data.total_raffles}`);
+
+        resetModal.classList.add('hidden');
+        resetForm.reset();
+        await loadDashboardData();
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error al reiniciar: ' + error.message);
+    }
+}
+
+// === LOTTERY DRAWING ===
+
+function openLotteryModal() {
+    lotteryModal.classList.remove('hidden');
+    loadLotteryStats();
+
+    // Reset modal state
+    document.getElementById('lottery-animation').classList.add('hidden');
+    document.getElementById('winner-result').classList.add('hidden');
+    document.getElementById('perform-draw-btn').style.display = 'inline-block';
+}
+
+async function loadLotteryStats() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/admin/dashboard`, {
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar estadísticas');
+
+        const stats = await response.json();
+
+        document.getElementById('sold-count').textContent = stats.rifas_vendidas || 0;
+
+        // Estimate unique participants (this is approximate)
+        const participantsResponse = await fetch(`${CONFIG.API_URL}/admin/users`, {
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (participantsResponse.ok) {
+            const users = await participantsResponse.json();
+            const participants = users.filter(u => (u.rifas_compradas || 0) > 0).length;
+            document.getElementById('participants-count').textContent = participants;
+        }
+
+    } catch (error) {
+        console.error('Error loading lottery stats:', error);
+    }
+}
+
+async function performLotteryDraw() {
+    if (!confirm('¿Realizar el sorteo ahora? Esta acción seleccionará un ganador aleatorio y cerrará la ronda actual.')) {
+        return;
+    }
+
+    // Hide button and show animation
+    document.getElementById('perform-draw-btn').style.display = 'none';
+    const animationDiv = document.getElementById('lottery-animation');
+    animationDiv.classList.remove('hidden');
+
+    // Animate spinning numbers
+    const spinningNumber = document.getElementById('spinning-number');
+    const spinInterval = setInterval(() => {
+        spinningNumber.textContent = Math.floor(Math.random() * 100) + 1;
+    }, 100);
+
+    try {
+        // Wait 3 seconds for animation
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // Perform actual draw
+        const response = await fetch(`${CONFIG.API_URL}/admin/draw-winner`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al realizar sorteo');
+        }
+
+        const data = await response.json();
+
+        // Stop animation
+        clearInterval(spinInterval);
+        animationDiv.classList.add('hidden');
+
+        // Show winner
+        displayWinner(data);
+
+        // Reload dashboard
+        await loadDashboardData();
+
+    } catch (error) {
+        clearInterval(spinInterval);
+        animationDiv.classList.add('hidden');
+        document.getElementById('perform-draw-btn').style.display = 'inline-block';
+
+        console.error('Error:', error);
+        alert('❌ Error al realizar sorteo: ' + error.message);
+    }
+}
+
+function displayWinner(data) {
+    const winnerDiv = document.getElementById('winner-result');
+
+    document.getElementById('winner-raffle').textContent = data.raffle_id;
+    document.getElementById('winner-name').textContent = `${data.winner.nombre} ${data.winner.apellido}`;
+    document.getElementById('winner-dni').textContent = data.winner.dni;
+    document.getElementById('winner-phone').textContent = data.winner.celular;
+
+    winnerDiv.classList.remove('hidden');
+}
+
+// === HISTORY ===
+
+function openHistoryModal() {
+    historyModal.classList.remove('hidden');
+    loadRaffleHistory();
+}
+
+async function loadRaffleHistory() {
+    const historyTableBody = document.querySelector('#history-table tbody');
+    historyTableBody.innerHTML = '<tr><td colspan="8" class="loading">Cargando historial...</td></tr>';
+
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/admin/raffle-history`, {
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar historial');
+
+        const history = await response.json();
+
+        if (history.length === 0) {
+            historyTableBody.innerHTML = '<tr><td colspan="8" class="loading">No hay historial de sorteos</td></tr>';
+            return;
+        }
+
+        historyTableBody.innerHTML = history.map(round => {
+            const startDate = new Date(round.started_at).toLocaleDateString('es-PE');
+            const endDate = round.ended_at ? new Date(round.ended_at).toLocaleDateString('es-PE') : '-';
+            const statusBadge = round.status === 'completed' ? '✅ Completado' :
+                round.status === 'active' ? '🔵 Activo' : '❌ Cancelado';
+
+            return `
+                <tr>
+                    <td><strong>#${round.round_number}</strong></td>
+                    <td>${startDate}</td>
+                    <td>${endDate}</td>
+                    <td>${round.total_raffles}</td>
+                    <td>${round.winner_raffle_id ? `<strong>#${round.winner_raffle_id}</strong>` : '-'}</td>
+                    <td>${round.winner_nombre ? `${round.winner_nombre} ${round.winner_apellido}` : '-'}</td>
+                    <td>${round.winner_dni || '-'}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('Error loading history:', error);
+        historyTableBody.innerHTML = '<tr><td colspan="8" class="loading">Error al cargar historial</td></tr>';
+    }
+}
+
