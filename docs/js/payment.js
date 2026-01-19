@@ -252,9 +252,9 @@ async function confirmPayment() {
         return;
     }
 
-    // Validate code length (at least 6 characters)
-    if (yapeCode.length < 6) {
-        showToast('El código de operación debe tener al menos 6 caracteres', 'error');
+    // Validate code length (exactly 8 digits)
+    if (!/^[0-9]{8}$/.test(yapeCode)) {
+        showToast('El código de operación debe tener exactamente 8 dígitos', 'error');
         if (yapeCodeInput) yapeCodeInput.style.borderColor = '#dc3545';
         return;
     }
