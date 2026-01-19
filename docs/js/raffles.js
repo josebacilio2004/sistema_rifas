@@ -91,13 +91,7 @@ function createRaffleElement(raffle) {
  * Handle raffle click
  */
 async function handleRaffleClick(raffleId) {
-    const userId = getCurrentUserId();
-    if (!userId) {
-        showToast('Debes registrarte primero', 'warning');
-        return;
-    }
-
-    // Add to cart instead of immediate purchase
+    // Add to cart directly (no user check needed)
     const added = addToCart(raffleId);
 
     if (added) {
