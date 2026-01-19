@@ -231,6 +231,38 @@ td {
     padding: 40px;
 }
 
+/* Raffle Number Badges */
+.rifas-badge {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 400px;
+}
+
+.rifa-number {
+    display: inline-block;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.rifa-number:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+}
+
+.no-rifas {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
 /* Carousel */
 .carousel-items-grid {
     display: grid;
