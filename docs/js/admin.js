@@ -176,6 +176,123 @@ async function loadStats() {
     totalRecaudadoEl.textContent = `S/ ${totalRecaudado.toFixed(2)}`;
 }
 
+// Debounce utility function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Load users with filters
+async function loadUsersWithFilters() {
+    try {
+        const search = document.getElementById('users-search')?.value || '';
+        const sortValue = document.getElementById('users-sort')?.value || 'created_at-DESC';
+        const [sortBy, sortOrder] = sortValue.split('-');
+
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (sortBy) params.append('sortBy', sortBy);
+        if (sortOrder) params.append('sortOrder', sortOrder);
+
+        const response = await fetch(`${CONFIG.API_URL}/admin/users?${params}`, {
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Error loading users');
+
+        const users = await response.json();
+
+        // Display users in table
+        if (users.length === 0) {
+            usersTableBody.innerHTML = '<tr><td colspan="7" class="loading">No hay usuarios registrados</td></tr>';
+            return;
+        }
+
+        usersTableBody.innerHTML = users.map(user => `
+            <tr>
+                <td>${user.nombre} ${user.apellido}</td>
+                <td>${user.dni}</td>
+                <td>${user.celular}</td>
+                <td><strong>${user.rifas_compradas || 0}</strong></td>
+                <td>
+                    <div class="rifas-badge">
+                        ${(user.numeros_rifas || []).filter(n => n !== null).map(num =>
+            `<span class="rifa-number">#${num}</span>`
+        ).join('')}
+                        ${(user.numeros_rifas || []).filter(n => n !== null).length === 0 ? '<span class="no-rifas">Sin rifas</span>' : ''}
+                    </div>
+                </td>
+                <td><strong>S/ ${parseFloat(user.total_gastado || 0).toFixed(2)}</strong></td>
+                <td>${new Date(user.created_at).toLocaleDateString('es-PE')}</td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading users with filters:', error);
+        usersTableBody.innerHTML = '<tr><td colspan="7" class="loading">Error al cargar usuarios</td></tr>';
+    }
+}
+
+// Load verifications with filters
+async function loadVerificationsWithFilters() {
+    try {
+        const search = document.getElementById('verifications-search')?.value || '';
+        const status = document.getElementById('verifications-status')?.value || 'pending_verification';
+
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+
+        const response = await fetch(`${CONFIG.API_URL}/admin/pending-verifications?${params}`, {
+            headers: {
+                'Authorization': `Bearer ${state.token}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Error loading verifications');
+
+        const verifications = await response.json();
+
+        // Display in table
+        const verificationsTable = document.querySelector('#verifications-table tbody');
+        if (!verificationsTable) return;
+
+        if (verifications.length === 0) {
+            verificationsTable.innerHTML = '<tr><td colspan="7" class="loading">No hay verificaciones</td></tr>';
+            return;
+        }
+
+        verificationsTable.innerHTML = verifications.map(v => `
+            <tr>
+                <td>${v.nombre} ${v.apellido}</td>
+                <td>${v.celular}</td>
+                <td>${v.yape_operation_code}</td>
+                <td>${v.yape_sender_name}</td>
+                <td>S/ ${parseFloat(v.amount).toFixed(2)}</td>
+                <td>
+                    <div class="rifas-badge">
+                        ${(v.raffle_ids || []).map(id => `<span class="rifa-number">#${id}</span>`).join('')}
+                    </div>
+                </td>
+                <td>
+                    <button class="btn-approve" onclick="approvePayment('${v.id}', ${JSON.stringify(v.raffle_ids).replace(/"/g, '&quot;')})">✅ Aprobar</button>
+                    <button class="btn-reject" onclick="rejectPayment('${v.id}', ${JSON.stringify(v.raffle_ids).replace(/"/g, '&quot;')})">❌ Rechazar</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading verifications with filters:', error);
+    }
+}
+
 async function loadUsers() {
     usersTableBody.innerHTML = '<tr><td colspan="7" class="loading">Cargando usuarios...</td></tr>';
 
