@@ -32,13 +32,14 @@ router.get('/conversion', verifyToken, isAdmin, async (req, res) => {
     try {
         const result = await db.query(`
             SELECT 
-                COUNT(DISTINCT id) as total_users,
-                COUNT(DISTINCT CASE WHEN rifas_compradas > 0 THEN id END) as buyers,
+                COUNT(DISTINCT u.id) as total_users,
+                COUNT(DISTINCT CASE WHEN t.id IS NOT NULL THEN u.id END) as buyers,
                 ROUND(
-                    COUNT(DISTINCT CASE WHEN rifas_compradas > 0 THEN id END)::numeric / 
-                    NULLIF(COUNT(DISTINCT id), 0) * 100, 2
+                    COUNT(DISTINCT CASE WHEN t.id IS NOT NULL THEN u.id END)::numeric / 
+                    NULLIF(COUNT(DISTINCT u.id), 0) * 100, 2
                 ) as conversion_rate
-            FROM users
+            FROM users u
+            LEFT JOIN transactions t ON u.id = t.user_id AND t.status = 'approved'
         `);
 
         res.json(result.rows[0]);
@@ -57,12 +58,14 @@ router.get('/top-buyers', verifyToken, isAdmin, async (req, res) => {
             SELECT 
                 u.nombre,
                 u.apellido,
-                u.rifas_compradas,
+                COUNT(r.id) as rifas_compradas,
                 COALESCE(SUM(t.amount), 0) as total_spent
             FROM users u
+            LEFT JOIN raffles r ON u.id = r.purchased_by AND r.status = 'sold'
             LEFT JOIN transactions t ON u.id = t.user_id AND t.status = 'approved'
-            GROUP BY u.id, u.nombre, u.apellido, u.rifas_compradas
-            ORDER BY u.rifas_compradas DESC
+            GROUP BY u.id, u.nombre, u.apellido
+            HAVING COUNT(r.id) > 0
+            ORDER BY rifas_compradas DESC
             LIMIT $1
         `, [parseInt(limit)]);
 
