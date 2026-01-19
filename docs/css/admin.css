@@ -524,4 +524,43 @@ canvas {
     .analytics-grid {
         grid-template-columns: 1fr;
     }
+
+    .analytics-section .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .analytics-section .section-header select {
+        width: 100%;
+    }
+
+    .conversion-stats .value {
+        font-size: 1.2rem;
+    }
+
+    .top-buyer-item .rank {
+        font-size: 1.2rem;
+        min-width: 30px;
+    }
+
+    .buyer-info strong {
+        font-size: 0.85rem;
+    }
+
+    .buyer-info small {
+        font-size: 0.75rem;
+    }
+
+    canvas {
+        max-height: 250px !important;
+    }
+
+    .analytics-card {
+        padding: 16px;
+    }
+
+    .analytics-card h3 {
+        font-size: 1rem;
+    }
 }
