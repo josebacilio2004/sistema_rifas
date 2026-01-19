@@ -167,6 +167,16 @@ router.post('/purchase-batch', async (req, res, next) => {
 
         console.log('🔵 Batch purchase request:', { raffle_ids, user_id, yape_operation_code, yape_sender_name });
 
+        // Check if raffle sales are enabled
+        const configResult = await db.query('SELECT sales_enabled FROM raffle_system_config LIMIT 1');
+
+        if (configResult.rows.length > 0 && !configResult.rows[0].sales_enabled) {
+            console.log('❌ Sales disabled');
+            return res.status(403).json({
+                error: 'Las ventas de rifas están actualmente deshabilitadas. El sorteo ya se realizó o está en proceso.'
+            });
+        }
+
         // Validate input
         if (!Array.isArray(raffle_ids) || raffle_ids.length === 0) {
             return res.status(400).json({ error: 'Se requiere al menos una rifa' });
