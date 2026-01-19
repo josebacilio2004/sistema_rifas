@@ -60,6 +60,7 @@ function stopContinuousDisable() {
     if (disableInterval) {
         clearInterval(disableInterval);
         disableInterval = null;
+        console.log('✅ Stopped continuous disable');
     }
 }
 
@@ -167,3 +168,4 @@ if (document.readyState === 'loading') {
 // Export for use in other scripts
 window.checkRaffleSalesStatus = checkRaffleSalesStatus;
 window.isSalesEnabled = () => salesEnabled;
+window.stopContinuousDisable = stopContinuousDisable;

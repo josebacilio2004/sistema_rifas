@@ -123,6 +123,35 @@ function startAutoRefresh() {
         try {
             const response = await API.getRaffles();
             rafflesData = response.raffles;
+
+            // Update sales status
+            const previousStatus = window.SALES_ENABLED;
+            window.SALES_ENABLED = response.sales_enabled !== false;
+
+            // If status changed, show notification and update UI
+            if (previousStatus !== window.SALES_ENABLED) {
+                console.log('🔄 Sales status changed:', window.SALES_ENABLED);
+
+                if (!window.SALES_ENABLED) {
+                    showToast('Las ventas de rifas han sido deshabilitadas', 'warning');
+                    // Show banner and disable
+                    if (window.checkRaffleSalesStatus) {
+                        window.checkRaffleSalesStatus();
+                    }
+                } else {
+                    showToast('Las ventas de rifas han sido habilitadas', 'success');
+                    // Remove banner if exists
+                    const banner = document.getElementById('sales-disabled-banner');
+                    if (banner) {
+                        banner.remove();
+                    }
+                    // Stop continuous disable
+                    if (window.stopContinuousDisable) {
+                        window.stopContinuousDisable();
+                    }
+                }
+            }
+
             renderRaffles();
         } catch (error) {
             console.error('Auto-refresh error:', error);
