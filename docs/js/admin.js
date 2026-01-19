@@ -60,8 +60,9 @@ function showLogin() {
 function showDashboard() {
     loginView.classList.add('hidden');
     dashboardView.classList.remove('hidden');
-    adminNameEl.textContent = `Bienvenido/a, ${state.admin.nombre}`;
+    adminNameEl.textContent = state.admin.username;
     loadDashboardData();
+    loadAnalytics();
 }
 
 async function handleLogin(e) {
@@ -727,3 +728,241 @@ async function loadRaffleHistory() {
     }
 }
 
+// ============================================
+// ANALYTICS DASHBOARD
+// ============================================
+
+let salesChart = null;
+let hourlyChart = null;
+
+async function loadAnalytics() {
+    await Promise.all([
+        loadConversionRate(),
+        loadSalesTrend(),
+        loadTopBuyers(),
+        loadHourlyDistribution()
+    ]);
+}
+
+async function loadConversionRate() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/analytics/conversion`, {
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+
+        if (!response.ok) throw new Error('Error loading conversion rate');
+
+        const data = await response.json();
+
+        document.getElementById('total-users-analytics').textContent = data.total_users || 0;
+        document.getElementById('buyers-count').textContent = data.buyers || 0;
+        document.getElementById('conversion-rate').textContent = `${data.conversion_rate || 0}%`;
+    } catch (error) {
+        console.error('Error loading conversion rate:', error);
+    }
+}
+
+async function loadSalesTrend() {
+    try {
+        const period = document.getElementById('analytics-period').value;
+        const response = await fetch(`${CONFIG.API_URL}/analytics/sales-trend?days=${period}`, {
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+
+        if (!response.ok) throw new Error('Error loading sales trend');
+
+        const data = await response.json();
+
+        const labels = data.map(d => new Date(d.date).toLocaleDateString('es-PE', { month: 'short', day: 'numeric' }));
+        const sales = data.map(d => parseInt(d.sales));
+        const revenue = data.map(d => parseFloat(d.revenue));
+
+        const ctx = document.getElementById('salesTrendChart');
+        if (!ctx) return;
+
+        if (salesChart) {
+            salesChart.destroy();
+        }
+
+        salesChart = new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Ventas',
+                        data: sales,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y',
+                        fill: true
+                    },
+                    {
+                        label: 'Ingresos (S/)',
+                        data: revenue,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1',
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        ticks: {
+                            color: '#9ca3af',
+                            stepSize: 1
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        ticks: { color: '#9ca3af' },
+                        grid: { drawOnChartArea: false }
+                    },
+                    x: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: '#e5e7eb' }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 27, 75, 0.9)',
+                        titleColor: '#e5e7eb',
+                        bodyColor: '#e5e7eb',
+                        borderColor: '#6366f1',
+                        borderWidth: 1
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error loading sales trend:', error);
+    }
+}
+
+async function loadTopBuyers() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/analytics/top-buyers?limit=5`, {
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+
+        if (!response.ok) throw new Error('Error loading top buyers');
+
+        const data = await response.json();
+
+        const listHTML = data.length > 0 ? data.map((buyer, index) => `
+            <div class="top-buyer-item">
+                <span class="rank">#${index + 1}</span>
+                <div class="buyer-info">
+                    <strong>${buyer.nombre} ${buyer.apellido}</strong>
+                    <small>${buyer.rifas_compradas} rifas - S/ ${parseFloat(buyer.total_spent).toFixed(2)}</small>
+                </div>
+            </div>
+        `).join('') : '<p style="color: var(--text-muted); text-align: center;">No hay datos disponibles</p>';
+
+        document.getElementById('top-buyers-list').innerHTML = listHTML;
+    } catch (error) {
+        console.error('Error loading top buyers:', error);
+    }
+}
+
+async function loadHourlyDistribution() {
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/analytics/hourly-distribution`, {
+            headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+
+        if (!response.ok) throw new Error('Error loading hourly distribution');
+
+        const data = await response.json();
+
+        const hourlyData = Array(24).fill(0);
+        data.forEach(item => {
+            hourlyData[item.hour] = parseInt(item.sales);
+        });
+
+        const labels = hourlyData.map((_, index) => `${index}:00`);
+
+        const ctx = document.getElementById('hourlyChart');
+        if (!ctx) return;
+
+        if (hourlyChart) {
+            hourlyChart.destroy();
+        }
+
+        hourlyChart = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Ventas por Hora',
+                    data: hourlyData,
+                    backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                    borderColor: '#6366f1',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#9ca3af',
+                            stepSize: 1
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#9ca3af',
+                            maxRotation: 45,
+                            minRotation: 45
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: '#e5e7eb' }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 27, 75, 0.9)',
+                        titleColor: '#e5e7eb',
+                        bodyColor: '#e5e7eb',
+                        borderColor: '#6366f1',
+                        borderWidth: 1
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error loading hourly distribution:', error);
+    }
+}
+
+const analyticsPeriodSelect = document.getElementById('analytics-period');
+if (analyticsPeriodSelect) {
+    analyticsPeriodSelect.addEventListener('change', () => {
+        loadSalesTrend();
+    });
+}

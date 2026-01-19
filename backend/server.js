@@ -13,6 +13,7 @@ const adminRoutes = require('./routes/admin');
 const paymentRoutes = require('./routes/payments');
 const carouselRoutes = require('./routes/carousel');
 const yapeWebhookRoutes = require('./routes/yape-webhook');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -85,6 +86,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/carousel', carouselRoutes);
 app.use('/api/yape', yapeWebhookRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

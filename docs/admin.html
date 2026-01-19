@@ -76,6 +76,57 @@
                 </div>
             </section>
 
+            <!-- Analytics Dashboard -->
+            <section class="analytics-section">
+                <div class="section-header">
+                    <h2>📊 Analytics Dashboard</h2>
+                    <select id="analytics-period">
+                        <option value="7">Últimos 7 días</option>
+                        <option value="30" selected>Últimos 30 días</option>
+                        <option value="90">Últimos 90 días</option>
+                    </select>
+                </div>
+
+                <div class="analytics-grid">
+                    <!-- Conversion Rate Card -->
+                    <div class="analytics-card">
+                        <h3>Tasa de Conversión</h3>
+                        <div class="conversion-stats">
+                            <div class="stat">
+                                <span class="label">Total Usuarios:</span>
+                                <span id="total-users-analytics" class="value">0</span>
+                            </div>
+                            <div class="stat">
+                                <span class="label">Compradores:</span>
+                                <span id="buyers-count" class="value">0</span>
+                            </div>
+                            <div class="stat highlight">
+                                <span class="label">Conversión:</span>
+                                <span id="conversion-rate" class="value">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sales Trend Chart -->
+                    <div class="analytics-card wide">
+                        <h3>Tendencia de Ventas</h3>
+                        <canvas id="salesTrendChart"></canvas>
+                    </div>
+
+                    <!-- Top Buyers -->
+                    <div class="analytics-card">
+                        <h3>Top Compradores</h3>
+                        <div id="top-buyers-list" class="top-buyers-list"></div>
+                    </div>
+
+                    <!-- Hourly Distribution -->
+                    <div class="analytics-card">
+                        <h3>Distribución por Hora</h3>
+                        <canvas id="hourlyChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
             <!-- Users Table -->
             <section class="users-section">
                 <div class="section-header">
@@ -295,6 +346,7 @@
     </div>
 
     <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="js/admin.js"></script>
 </body>
 
