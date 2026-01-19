@@ -216,6 +216,38 @@ body {
     gap: 16px;
 }
 
+.admin-brand-logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    animation: float 3s ease-in-out infinite;
+    box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+    border: 2px solid rgba(251, 191, 36, 0.5);
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.admin-panel-label {
+    font-size: 1.2rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #fbbf24, #fcd34d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+}
+
 .nav-brand h1 {
     font-size: 1.5rem;
     font-weight: 700;

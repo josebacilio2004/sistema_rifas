@@ -570,4 +570,51 @@ router.get('/raffle-history', verifyToken, isAdmin, async (req, res, next) => {
     }
 });
 
+/**
+ * GET /api/admin/raffle-status
+ * Get current raffle sales status
+ */
+router.get('/raffle-status', verifyToken, isAdmin, async (req, res, next) => {
+    try {
+        const result = await db.query('SELECT sales_enabled, updated_at FROM raffle_system_config LIMIT 1');
+
+        if (result.rows.length === 0) {
+            // Initialize if not exists
+            await db.query('INSERT INTO raffle_system_config (sales_enabled) VALUES (true)');
+            return res.json({ sales_enabled: true });
+        }
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * POST /api/admin/toggle-raffle-sales
+ * Enable or disable raffle sales
+ */
+router.post('/toggle-raffle-sales', verifyToken, isAdmin, async (req, res, next) => {
+    try {
+        const { enabled } = req.body;
+
+        if (typeof enabled !== 'boolean') {
+            return res.status(400).json({ error: 'enabled must be a boolean' });
+        }
+
+        await db.query(
+            'UPDATE raffle_system_config SET sales_enabled = $1, updated_by = $2 WHERE id = 1',
+            [enabled, req.user.id]
+        );
+
+        res.json({
+            success: true,
+            sales_enabled: enabled,
+            message: enabled ? 'Ventas de rifas habilitadas' : 'Ventas de rifas deshabilitadas'
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;
