@@ -44,13 +44,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     createCarouselSlides();
     createCarouselDots();
     setupEventListeners();
-    loadAvailableCount();
+    setupHamburgerMenu();
+    startCounterUpdates(); // Iniciar contador dinámico
 
     // Auto-play carousel
     if (totalSlides > 0) {
         setInterval(nextSlide, 5000);
     }
 });
+
+// Detener contador cuando el usuario sale de la página
+window.addEventListener('beforeunload', stopCounterUpdates);
 
 async function loadPremiosFromAPI() {
     try {
@@ -141,18 +145,74 @@ function updateCarousel() {
     });
 }
 
+// Auto-update available count every 30 seconds
+let counterInterval;
+
 async function loadAvailableCount() {
     try {
         const response = await fetch(`${window.CONFIG?.API_URL || 'http://localhost:3000/api'}/raffles`);
         if (response.ok) {
-            const raffles = await response.json();
+            const data = await response.json();
+            const raffles = data.raffles || data;
             const available = raffles.filter(r => r.status === 'available').length;
+
             if (availableCountEl) {
-                availableCountEl.textContent = available;
+                // Animación de actualización
+                if (availableCountEl.textContent !== available.toString()) {
+                    availableCountEl.classList.add('updating');
+                    setTimeout(() => {
+                        availableCountEl.textContent = available;
+                        availableCountEl.classList.remove('updating');
+                    }, 150);
+                } else {
+                    availableCountEl.textContent = available;
+                }
             }
         }
     } catch (error) {
         console.log('Error loading available count:', error);
+    }
+}
+
+// Iniciar auto-actualización
+function startCounterUpdates() {
+    loadAvailableCount(); // Carga inicial
+    counterInterval = setInterval(loadAvailableCount, 30000); // Cada 30 segundos
+}
+
+// Detener auto-actualización (útil si el usuario navega)
+function stopCounterUpdates() {
+    if (counterInterval) {
+        clearInterval(counterInterval);
+    }
+}
+
+// Hamburger menu para móvil
+function setupHamburgerMenu() {
+    const hamburger = document.querySelector('.hamburger');
+    const navMenu = document.querySelector('.nav-menu');
+
+    if (hamburger && navMenu) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
+
+        // Cerrar menú al hacer click en un enlace
+        document.querySelectorAll('.nav-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                navMenu.classList.remove('active');
+            });
+        });
+
+        // Cerrar menú al hacer click fuera
+        document.addEventListener('click', (e) => {
+            if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
+                hamburger.classList.remove('active');
+                navMenu.classList.remove('active');
+            }
+        });
     }
 }
 
