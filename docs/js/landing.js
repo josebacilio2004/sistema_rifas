@@ -157,7 +157,7 @@ let counterInterval;
 
 async function loadAvailableCount() {
     try {
-        const response = await fetch(`${window.CONFIG?.API_URL || 'http://localhost:3000/api'}/raffles`);
+        const response = await fetch(`${window.CONFIG?.API_URL || 'https://sistema-rifas-backend.onrender.com/api'}/raffles`);
         if (response.ok) {
             const data = await response.json();
             const raffles = data.raffles || data;
@@ -177,7 +177,10 @@ async function loadAvailableCount() {
             }
         }
     } catch (error) {
-        console.log('Error loading available count:', error);
+        // Silently fail - keep current count or show default
+        if (availableCountEl && !availableCountEl.textContent) {
+            availableCountEl.textContent = '100';
+        }
     }
 }
 
